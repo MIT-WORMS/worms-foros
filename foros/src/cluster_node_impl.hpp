@@ -40,6 +40,7 @@
 #include "lifecycle/state_type.hpp"
 #include "raft/context.hpp"
 #include "raft/state_machine.hpp"
+#include "rclcpp/node_interfaces/node_parameters_interface.hpp"
 
 namespace akit {
 namespace failover {

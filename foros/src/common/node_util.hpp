@@ -17,6 +17,7 @@
 #ifndef AKIT_FAILOVER_FOROS_COMMON_NODE_UTIL_HPP_
 #define AKIT_FAILOVER_FOROS_COMMON_NODE_UTIL_HPP_
 
+#include <cstdint>
 #include <string>
 
 namespace akit {

@@ -776,7 +776,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
   using OnSetParametersCallbackHandle =
       rclcpp::node_interfaces::OnSetParametersCallbackHandle;
   using OnParametersSetCallbackType =
-      rclcpp::node_interfaces::NodeParametersInterface::OnParametersSetCallbackType;
+      OnSetParametersCallbackHandle::OnSetParametersCallbackType;
 
   /// Add a callback for when parameters are being set.
   /**
@@ -849,7 +849,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
   CLUSTER_NODE_PUBLIC
   RCUTILS_WARN_UNUSED
   OnSetParametersCallbackHandle::SharedPtr add_on_set_parameters_callback(
-      OnParametersSetCallbackType callback);
+      OnParametersCallbackType callback);
 
   /// Remove a callback registered with `add_on_set_parameters_callback`.
   /**
