@@ -1,7 +1,11 @@
-.vscode/*
-build
-install
-log
+# Documentation
 */html
 */latex
 coverage
+
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
