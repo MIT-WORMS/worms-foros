@@ -13,3 +13,4 @@ jobs:
         with:
           clang-format-version: "17"
           fallback-style: "Chromium"
+          exclude-regex: 'docs/.*\.hpp$'
