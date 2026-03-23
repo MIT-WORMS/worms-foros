@@ -29,17 +29,17 @@ namespace foros {
 template <typename T>
 class Observable {
  public:
-  void subscribe(Observer<T> *observer) {
+  void subscribe(Observer<T>* observer) {
     std::lock_guard<std::recursive_mutex> lock(callback_mutex_);
     observers_.push_back(observer);
   }
 
-  void unsubscribe(Observer<T> *observer) {
+  void unsubscribe(Observer<T>* observer) {
     std::lock_guard<std::recursive_mutex> lock(callback_mutex_);
     observers_.remove(observer);
   }
 
-  void notify(const T &data) {
+  void notify(const T& data) {
     std::lock_guard<std::recursive_mutex> lock(callback_mutex_);
     for (auto observer : observers_) {
       observer->handle(data);
@@ -47,7 +47,7 @@ class Observable {
   }
 
  private:
-  std::list<Observer<T> *> observers_;
+  std::list<Observer<T>*> observers_;
   std::recursive_mutex callback_mutex_;
 };
 

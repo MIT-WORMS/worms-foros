@@ -18,9 +18,8 @@
 #define AKIT_FAILOVER_FOROS_RAFT_INSPECTOR_HPP_
 
 #include <foros_msgs/msg/inspector.hpp>
-#include <rclcpp/rclcpp.hpp>
-
 #include <functional>
+#include <rclcpp/rclcpp.hpp>
 #include <string>
 
 #include "raft/context_store.hpp"
@@ -32,12 +31,13 @@ namespace raft {
 
 class Inspector {
  public:
-  Inspector(rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
-            rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics,
-            rclcpp::node_interfaces::NodeTimersInterface::SharedPtr node_timers,
-            rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
-            std::function<void(foros_msgs::msg::Inspector::SharedPtr msg)>
-                message_request_callback);
+  Inspector(
+      rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
+      rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics,
+      rclcpp::node_interfaces::NodeTimersInterface::SharedPtr node_timers,
+      rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
+      std::function<void(foros_msgs::msg::Inspector::SharedPtr msg)>
+          message_request_callback);
 
   ~Inspector();
 
@@ -48,8 +48,8 @@ class Inspector {
   bool is_enabled();
   double get_period();
 
-  const char *env_var_period_ = "FOROS_INSPECTOR_PERIOD";
-  const char *env_var_enable_ = "FOROS_INSPECTOR";
+  const char* env_var_period_ = "FOROS_INSPECTOR_PERIOD";
+  const char* env_var_enable_ = "FOROS_INSPECTOR";
   const double default_period_ = 1.0;
 
   rclcpp::Publisher<foros_msgs::msg::Inspector>::SharedPtr inspector_publisher_;

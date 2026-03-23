@@ -17,9 +17,8 @@
 #ifndef AKIT_FAILOVER_FOROS_CLUSTER_NODE_SERVICE_HPP_
 #define AKIT_FAILOVER_FOROS_CLUSTER_NODE_SERVICE_HPP_
 
-#include <rclcpp/service.hpp>
-
 #include <memory>
+#include <rclcpp/service.hpp>
 #include <string>
 #include <utility>
 
@@ -50,12 +49,13 @@ class ClusterNodeService : public rclcpp::Service<ServiceT> {
    * \param[in] any_callback Callback to call when a client request is received.
    * \param[in] service_options options for the subscription.
    */
-  ClusterNodeService(std::shared_ptr<rcl_node_t> node_handle,
-                     const std::string &service_name,
-                     rclcpp::AnyServiceCallback<ServiceT> any_callback,
-                     rcl_service_options_t &service_options)
-      : rclcpp::Service<ServiceT>(node_handle, service_name, any_callback,
-                                  service_options),
+  ClusterNodeService(
+      std::shared_ptr<rcl_node_t> node_handle,
+      const std::string& service_name,
+      rclcpp::AnyServiceCallback<ServiceT> any_callback,
+      rcl_service_options_t& service_options)
+      : rclcpp::Service<ServiceT>(
+            node_handle, service_name, any_callback, service_options),
         node_lifecycle_interface_(nullptr),
         logger_(rclcpp::get_logger("ClusterNodeService")) {}
 
@@ -69,8 +69,9 @@ class ClusterNodeService : public rclcpp::Service<ServiceT> {
    * \param[in] request_header a header of the request.
    * \param[in] request a handle of the request.
    */
-  void handle_request(std::shared_ptr<rmw_request_id_t> request_header,
-                      std::shared_ptr<void> request) override {
+  void handle_request(
+      std::shared_ptr<rmw_request_id_t> request_header,
+      std::shared_ptr<void> request) override {
     if (node_lifecycle_interface_ != nullptr &&
         !node_lifecycle_interface_->is_activated()) {
       // ignore handle request when service is not activated
@@ -84,12 +85,12 @@ class ClusterNodeService : public rclcpp::Service<ServiceT> {
   /**
    * \param[in] interface node interface.
    */
-  void set_node_lifecycle_interface(ClusterNodeLifecycleInterface *interface) {
+  void set_node_lifecycle_interface(ClusterNodeLifecycleInterface* interface) {
     node_lifecycle_interface_ = interface;
   }
 
  private:
-  ClusterNodeLifecycleInterface *node_lifecycle_interface_;
+  ClusterNodeLifecycleInterface* node_lifecycle_interface_;
   rclcpp::Logger logger_;
 };
 

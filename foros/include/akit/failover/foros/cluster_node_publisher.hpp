@@ -17,10 +17,9 @@
 #ifndef AKIT_FAILOVER_FOROS_CLUSTER_NODE_PUBLISHER_HPP_
 #define AKIT_FAILOVER_FOROS_CLUSTER_NODE_PUBLISHER_HPP_
 
+#include <memory>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/publisher.hpp>
-
-#include <memory>
 #include <string>
 #include <utility>
 
@@ -57,7 +56,8 @@ class ClusterNodePublisher : public rclcpp::Publisher<MessageT, Alloc> {
    */
   ClusterNodePublisher(
       rclcpp::node_interfaces::NodeBaseInterface* node_base,
-      const std::string& topic, const rclcpp::QoS& qos,
+      const std::string& topic,
+      const rclcpp::QoS& qos,
       const rclcpp::PublisherOptionsWithAllocator<Alloc>& options)
       : rclcpp::Publisher<MessageT, Alloc>(node_base, topic, qos, options),
         node_lifecycle_interface_(nullptr),

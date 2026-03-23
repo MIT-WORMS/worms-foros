@@ -17,9 +17,9 @@
 #include "raft/context_store.hpp"
 
 #include <leveldb/db.h>
-#include <rclcpp/logging.hpp>
 
 #include <memory>
+#include <rclcpp/logging.hpp>
 #include <string>
 #include <vector>
 
@@ -28,7 +28,7 @@ namespace failover {
 namespace foros {
 namespace raft {
 
-ContextStore::ContextStore(const std::string &path, rclcpp::Logger &logger)
+ContextStore::ContextStore(const std::string& path, rclcpp::Logger& logger)
     : current_term_(0),
       voted_for_(0),
       voted_(false),
@@ -65,12 +65,11 @@ bool ContextStore::current_term(const uint64_t term) {
     return false;
   }
 
-  leveldb::Slice value(reinterpret_cast<const char *>(&term), sizeof(uint64_t));
+  leveldb::Slice value(reinterpret_cast<const char*>(&term), sizeof(uint64_t));
 
   auto status = db_->Put(leveldb::WriteOptions(), kCurrentTermKey, value);
   if (status.ok() == false) {
-    RCLCPP_ERROR(logger_, "current_term set failed: %s",
-                 status.ToString().c_str());
+    RCLCPP_ERROR(logger_, "current_term set failed: %s", status.ToString().c_str());
     return false;
   }
   return true;
@@ -87,8 +86,7 @@ void ContextStore::init_current_term() {
 
   if (status.ok() == false) {
     if (!status.NotFound) {
-      RCLCPP_ERROR(logger_, "current_term get failed: %s",
-                   status.ToString().c_str());
+      RCLCPP_ERROR(logger_, "current_term get failed: %s", status.ToString().c_str());
     }
     current_term_ = 0;
     return;
@@ -101,7 +99,7 @@ void ContextStore::init_current_term() {
     return;
   }
 
-  current_term_ = *(reinterpret_cast<const uint64_t *>(slice.data()));
+  current_term_ = *(reinterpret_cast<const uint64_t*>(slice.data()));
 }
 
 bool ContextStore::voted_for(const uint32_t id) {
@@ -113,11 +111,10 @@ bool ContextStore::voted_for(const uint32_t id) {
     return false;
   }
 
-  leveldb::Slice value(reinterpret_cast<const char *>(&id), sizeof(uint32_t));
+  leveldb::Slice value(reinterpret_cast<const char*>(&id), sizeof(uint32_t));
   auto status = db_->Put(leveldb::WriteOptions(), kVotedForKey, value);
   if (status.ok() == false) {
-    RCLCPP_ERROR(logger_, "voted_for set failed: %s",
-                 status.ToString().c_str());
+    RCLCPP_ERROR(logger_, "voted_for set failed: %s", status.ToString().c_str());
     return false;
   }
   return true;
@@ -134,8 +131,7 @@ void ContextStore::init_voted_for() {
 
   if (status.ok() == false) {
     if (!status.NotFound) {
-      RCLCPP_ERROR(logger_, "voted_for get failed: %s",
-                   status.ToString().c_str());
+      RCLCPP_ERROR(logger_, "voted_for get failed: %s", status.ToString().c_str());
     }
     voted_for_ = 0;
     return;
@@ -148,7 +144,7 @@ void ContextStore::init_voted_for() {
     return;
   }
 
-  voted_for_ = *(reinterpret_cast<const uint32_t *>(slice.data()));
+  voted_for_ = *(reinterpret_cast<const uint32_t*>(slice.data()));
 }
 
 bool ContextStore::voted(const bool voted) {
@@ -159,7 +155,7 @@ bool ContextStore::voted(const bool voted) {
     RCLCPP_ERROR(logger_, "db is nullptr");
     return false;
   }
-  leveldb::Slice value(reinterpret_cast<const char *>(&voted), sizeof(bool));
+  leveldb::Slice value(reinterpret_cast<const char*>(&voted), sizeof(bool));
   auto status = db_->Put(leveldb::WriteOptions(), kVotedKey, value);
   if (status.ok() == false) {
     RCLCPP_ERROR(logger_, "voted set failed: %s", status.ToString().c_str());
@@ -192,7 +188,7 @@ void ContextStore::init_voted() {
     return;
   }
 
-  voted_ = *(reinterpret_cast<const bool *>(slice.data()));
+  voted_ = *(reinterpret_cast<const bool*>(slice.data()));
 }
 
 uint32_t ContextStore::vote_received() {
@@ -246,8 +242,7 @@ uint64_t ContextStore::load_logs_size() {
 
   if (status.ok() == false) {
     if (!status.NotFound) {
-      RCLCPP_ERROR(logger_, "logs size get failed: %s",
-                   status.ToString().c_str());
+      RCLCPP_ERROR(logger_, "logs size get failed: %s", status.ToString().c_str());
     }
     return 0;
   }
@@ -258,7 +253,7 @@ uint64_t ContextStore::load_logs_size() {
     return 0;
   }
 
-  return *(reinterpret_cast<const uint64_t *>(slice.data()));
+  return *(reinterpret_cast<const uint64_t*>(slice.data()));
 }
 
 bool ContextStore::store_logs_size(const uint64_t size) {
@@ -267,11 +262,10 @@ bool ContextStore::store_logs_size(const uint64_t size) {
     return false;
   }
 
-  leveldb::Slice value(reinterpret_cast<const char *>(&size), sizeof(uint64_t));
+  leveldb::Slice value(reinterpret_cast<const char*>(&size), sizeof(uint64_t));
   auto status = db_->Put(leveldb::WriteOptions(), kLogSizeKey, value);
   if (status.ok() == false) {
-    RCLCPP_ERROR(logger_, "logs size set failed: %s",
-                 status.ToString().c_str());
+    RCLCPP_ERROR(logger_, "logs size set failed: %s", status.ToString().c_str());
     return false;
   }
   return true;
@@ -303,8 +297,8 @@ LogEntry::SharedPtr ContextStore::load_log(const uint64_t id) {
 
   if (status.ok() == false) {
     if (!status.NotFound) {
-      RCLCPP_ERROR(logger_, "log term for %lu get failed: %s", id,
-                   status.ToString().c_str());
+      RCLCPP_ERROR(
+          logger_, "log term for %lu get failed: %s", id, status.ToString().c_str());
     }
     return nullptr;
   }
@@ -315,7 +309,7 @@ LogEntry::SharedPtr ContextStore::load_log(const uint64_t id) {
     return nullptr;
   }
 
-  uint64_t term = *(reinterpret_cast<const uint64_t *>(slice.data()));
+  uint64_t term = *(reinterpret_cast<const uint64_t*>(slice.data()));
 
   status = db_->Get(leveldb::ReadOptions(), get_log_data_key(id), &value);
   slice = value;
@@ -330,19 +324,18 @@ bool ContextStore::store_log_term(const uint64_t id, const uint64_t term) {
     return false;
   }
 
-  leveldb::Slice value(reinterpret_cast<const char *>(&term), sizeof(uint64_t));
+  leveldb::Slice value(reinterpret_cast<const char*>(&term), sizeof(uint64_t));
   auto status = db_->Put(leveldb::WriteOptions(), get_log_term_key(id), value);
   if (status.ok() == false) {
-    RCLCPP_ERROR(logger_, "logs term for %lu set failed: %s", id,
-                 status.ToString().c_str());
+    RCLCPP_ERROR(
+        logger_, "logs term for %lu set failed: %s", id, status.ToString().c_str());
     return false;
   }
 
   return true;
 }
 
-bool ContextStore::store_log_data(const uint64_t id,
-                                  std::vector<uint8_t> data) {
+bool ContextStore::store_log_data(const uint64_t id, std::vector<uint8_t> data) {
   if (db_ == nullptr) {
     RCLCPP_ERROR(logger_, "db is nullptr");
     return false;
@@ -352,8 +345,8 @@ bool ContextStore::store_log_data(const uint64_t id,
   leveldb::Slice value(buffer.c_str(), data.size());
   auto status = db_->Put(leveldb::WriteOptions(), get_log_data_key(id), value);
   if (status.ok() == false) {
-    RCLCPP_ERROR(logger_, "logs term for %lu set failed: %s", id,
-                 status.ToString().c_str());
+    RCLCPP_ERROR(
+        logger_, "logs term for %lu set failed: %s", id, status.ToString().c_str());
     return false;
   }
 

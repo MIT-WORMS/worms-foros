@@ -23,7 +23,7 @@
 #include "akit/failover/foros/cluster_node_options.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   try {
     const std::string kClusterName = "test_cluster_election";
 
@@ -54,8 +54,7 @@ int main(int argc, char **argv) {
         kClusterName, id, cluster_node_ids);
 
     node->register_on_activated([&]() { RCLCPP_INFO(logger, "activated"); });
-    node->register_on_deactivated(
-        [&]() { RCLCPP_INFO(logger, "deactivated"); });
+    node->register_on_deactivated([&]() { RCLCPP_INFO(logger, "deactivated"); });
     node->register_on_standby([&]() { RCLCPP_INFO(logger, "standby"); });
 
     rclcpp::spin(node->get_node_base_interface());

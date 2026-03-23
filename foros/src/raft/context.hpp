@@ -19,6 +19,10 @@
 
 #include <foros_msgs/srv/append_entries.hpp>
 #include <foros_msgs/srv/request_vote.hpp>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <random>
 #include <rclcpp/any_service_callback.hpp>
 #include <rclcpp/logger.hpp>
 #include <rclcpp/node_interfaces/node_base_interface.hpp>
@@ -27,11 +31,6 @@
 #include <rclcpp/node_interfaces/node_services_interface.hpp>
 #include <rclcpp/node_interfaces/node_timers_interface.hpp>
 #include <rclcpp/timer.hpp>
-
-#include <map>
-#include <memory>
-#include <mutex>
-#include <random>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -52,7 +51,8 @@ namespace raft {
 class Context {
  public:
   Context(
-      const std::string &cluster_name, const uint32_t node_id,
+      const std::string& cluster_name,
+      const uint32_t node_id,
       rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
       rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph,
       rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services,
@@ -61,10 +61,12 @@ class Context {
       rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
       const unsigned int election_timeout_min,
       const unsigned int election_timeout_max,
-      const std::string &temp_directory, rclcpp::Logger &logger);
+      const std::string& temp_directory,
+      rclcpp::Logger& logger);
 
-  void initialize(const std::vector<uint32_t> &cluster_node_ids,
-                  StateMachineInterface *state_machine_interface);
+  void initialize(
+      const std::vector<uint32_t>& cluster_node_ids,
+      StateMachineInterface* state_machine_interface);
   void start_election_timer();
   void stop_election_timer();
   void reset_election_timer();
@@ -89,10 +91,9 @@ class Context {
 
  private:
   void initialize_node();
-  void initialize_other_nodes(const std::vector<uint32_t> &cluster_node_ids);
+  void initialize_other_nodes(const std::vector<uint32_t>& cluster_node_ids);
   void set_cluster_size(uint32_t size);
-  void set_state_machine_interface(
-      StateMachineInterface *state_machine_interface);
+  void set_state_machine_interface(StateMachineInterface* state_machine_interface);
 
   bool update_term(uint64_t term, bool self = false);
   bool is_valid_node(uint32_t id);
@@ -101,9 +102,11 @@ class Context {
   void invoke_revert_callback(uint64_t id);
 
   // Voting methods
-  std::tuple<uint64_t, bool> vote(const uint64_t term, const uint32_t id,
-                                  const uint64_t last_command_index,
-                                  const uint64_t last_command_term);
+  std::tuple<uint64_t, bool> vote(
+      const uint64_t term,
+      const uint32_t id,
+      const uint64_t last_command_index,
+      const uint64_t last_command_term);
   void on_request_vote_requested(
       const std::shared_ptr<rmw_request_id_t> header,
       const std::shared_ptr<foros_msgs::srv::RequestVote::Request> request,
@@ -121,28 +124,35 @@ class Context {
   bool request_local_commit(
       const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request);
   void request_local_rollback(const uint64_t commit_index);
-  void on_broadcast_response(const uint32_t id, const uint64_t commit_index,
-                             const uint64_t term, const bool success);
+  void on_broadcast_response(
+      const uint32_t id,
+      const uint64_t commit_index,
+      const uint64_t term,
+      const bool success);
   CommandCommitResponseSharedFuture complete_commit(
       CommandCommitResponseSharedPromise promise,
-      CommandCommitResponseSharedFuture future, LogEntry::SharedPtr log,
-      bool result, CommandCommitResponseCallback callback);
+      CommandCommitResponseSharedFuture future,
+      LogEntry::SharedPtr log,
+      bool result,
+      CommandCommitResponseCallback callback);
   CommandCommitResponseSharedFuture cancel_commit(
       CommandCommitResponseSharedPromise promise,
-      CommandCommitResponseSharedFuture future, uint64_t id,
+      CommandCommitResponseSharedFuture future,
+      uint64_t id,
       CommandCommitResponseCallback callback);
   std::shared_ptr<PendingCommit> get_pending_commit();
   bool set_pending_commit(std::shared_ptr<PendingCommit> commit);
-  void handle_pending_commit_response(const uint32_t id,
-                                      const uint64_t commit_index,
-                                      const uint64_t term, const bool success);
+  void handle_pending_commit_response(
+      const uint32_t id,
+      const uint64_t commit_index,
+      const uint64_t term,
+      const bool success);
   const std::shared_ptr<LogEntry> on_log_get_request(uint64_t id);
   void inspector_message_requested(foros_msgs::msg::Inspector::SharedPtr msg);
 
   std::shared_ptr<PendingCommit> clear_pending_commit();
 
-  void set_commit_callback(
-      std::function<void(uint64_t, Command::SharedPtr)> callback);
+  void set_commit_callback(std::function<void(uint64_t, Command::SharedPtr)> callback);
   void set_revert_callback(std::function<void(uint64_t)> callback);
 
   const std::string cluster_name_;
@@ -154,14 +164,10 @@ class Context {
   rclcpp::node_interfaces::NodeTimersInterface::SharedPtr node_timers_;
   rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock_;
 
-  rclcpp::Service<foros_msgs::srv::AppendEntries>::SharedPtr
-      append_entries_service_;
-  rclcpp::AnyServiceCallback<foros_msgs::srv::AppendEntries>
-      append_entries_callback_;
-  rclcpp::Service<foros_msgs::srv::RequestVote>::SharedPtr
-      request_vote_service_;
-  rclcpp::AnyServiceCallback<foros_msgs::srv::RequestVote>
-      request_vote_callback_;
+  rclcpp::Service<foros_msgs::srv::AppendEntries>::SharedPtr append_entries_service_;
+  rclcpp::AnyServiceCallback<foros_msgs::srv::AppendEntries> append_entries_callback_;
+  rclcpp::Service<foros_msgs::srv::RequestVote>::SharedPtr request_vote_service_;
+  rclcpp::AnyServiceCallback<foros_msgs::srv::RequestVote> request_vote_callback_;
 
   std::map<uint32_t, std::shared_ptr<OtherNode>> other_nodes_;
 
@@ -185,7 +191,7 @@ class Context {
   std::function<void(uint64_t, Command::SharedPtr)> commit_callback_;
   std::function<void(uint64_t)> revert_callback_;
 
-  StateMachineInterface *state_machine_interface_;
+  StateMachineInterface* state_machine_interface_;
 
   rclcpp::Logger logger_;
 

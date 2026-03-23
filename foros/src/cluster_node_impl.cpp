@@ -16,9 +16,8 @@
 
 #include "cluster_node_impl.hpp"
 
-#include <rclcpp/node_interfaces/node_base.hpp>
-
 #include <memory>
+#include <rclcpp/node_interfaces/node_base.hpp>
 #include <string>
 #include <vector>
 
@@ -30,8 +29,9 @@ namespace failover {
 namespace foros {
 
 ClusterNodeImpl::ClusterNodeImpl(
-    const std::string &cluster_name, const uint32_t node_id,
-    const std::vector<uint32_t> &cluster_node_ids,
+    const std::string& cluster_name,
+    const uint32_t node_id,
+    const std::vector<uint32_t>& cluster_node_ids,
     rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
     rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph,
     rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging,
@@ -39,14 +39,23 @@ ClusterNodeImpl::ClusterNodeImpl(
     rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics,
     rclcpp::node_interfaces::NodeTimersInterface::SharedPtr node_timers,
     rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
-    const ClusterNodeOptions &options)
+    const ClusterNodeOptions& options)
     : logger_(node_logging->get_logger().get_child("cluster_node")),
       raft_context_(std::make_shared<raft::Context>(
-          cluster_name, node_id, node_base, node_graph, node_services,
-          node_topics, node_timers, node_clock, options.election_timeout_min(),
-          options.election_timeout_max(), options.temp_directory(), logger_)),
-      raft_fsm_(std::make_unique<raft::StateMachine>(cluster_node_ids,
-                                                     raft_context_, logger_)),
+          cluster_name,
+          node_id,
+          node_base,
+          node_graph,
+          node_services,
+          node_topics,
+          node_timers,
+          node_clock,
+          options.election_timeout_min(),
+          options.election_timeout_max(),
+          options.temp_directory(),
+          logger_)),
+      raft_fsm_(std::make_unique<raft::StateMachine>(
+          cluster_node_ids, raft_context_, logger_)),
       lifecycle_fsm_(std::make_unique<lifecycle::StateMachine>(logger_)) {
   lifecycle_fsm_->subscribe(this);
   raft_fsm_->subscribe(this);
@@ -58,7 +67,7 @@ ClusterNodeImpl::~ClusterNodeImpl() {
   raft_fsm_->unsubscribe(this);
 }
 
-void ClusterNodeImpl::handle(const lifecycle::StateType &state) {
+void ClusterNodeImpl::handle(const lifecycle::StateType& state) {
   switch (state) {
     case lifecycle::StateType::kStandby:
       if (standby_callback_) {
@@ -76,14 +85,13 @@ void ClusterNodeImpl::handle(const lifecycle::StateType &state) {
       }
       break;
     default:
-      RCLCPP_ERROR(logger_, "Invalid lifecycle state : %d",
-                   static_cast<int>(state));
+      RCLCPP_ERROR(logger_, "Invalid lifecycle state : %d", static_cast<int>(state));
 
       break;
   }
 }
 
-void ClusterNodeImpl::handle(const raft::StateType &state) {
+void ClusterNodeImpl::handle(const raft::StateType& state) {
   switch (state) {
     case raft::StateType::kStandby:
       lifecycle_fsm_->handle(lifecycle::Event::kDeactivate);
@@ -98,19 +106,21 @@ void ClusterNodeImpl::handle(const raft::StateType &state) {
       lifecycle_fsm_->handle(lifecycle::Event::kActivate);
       break;
     default:
-      RCLCPP_ERROR(logger_, "Invalid raft state (%lu) : %d",
-                   raft_context_->get_term(), static_cast<int>(state));
+      RCLCPP_ERROR(
+          logger_,
+          "Invalid raft state (%lu) : %d",
+          raft_context_->get_term(),
+          static_cast<int>(state));
       break;
   }
 }
 
 bool ClusterNodeImpl::is_activated() {
-  return lifecycle_fsm_->get_current_state_type() ==
-         lifecycle::StateType::kActive;
+  return lifecycle_fsm_->get_current_state_type() == lifecycle::StateType::kActive;
 }
 
 CommandCommitResponseSharedFuture ClusterNodeImpl::commit_command(
-    Command::SharedPtr command, CommandCommitResponseCallback &callback) {
+    Command::SharedPtr command, CommandCommitResponseCallback& callback) {
   return raft_context_->commit_command(command, callback);
 }
 

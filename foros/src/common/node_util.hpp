@@ -25,15 +25,16 @@ namespace foros {
 
 class NodeUtil {
  public:
-  static const char *kAppendEntriesServiceName;
-  static const char *kRequestVoteServiceName;
+  static const char* kAppendEntriesServiceName;
+  static const char* kRequestVoteServiceName;
 
-  static std::string get_node_name(const std::string &cluster_name,
-                                   const uint32_t node_id);
+  static std::string get_node_name(
+      const std::string& cluster_name, const uint32_t node_id);
 
-  static std::string get_service_name(const std::string &cluster_name,
-                                      const uint32_t node_id,
-                                      const std::string &service_name);
+  static std::string get_service_name(
+      const std::string& cluster_name,
+      const uint32_t node_id,
+      const std::string& service_name);
 };
 
 }  // namespace foros

@@ -17,6 +17,8 @@
 #ifndef AKIT_FAILOVER_FOROS_CLUSTER_NODE_HPP_
 #define AKIT_FAILOVER_FOROS_CLUSTER_NODE_HPP_
 
+#include <map>
+#include <memory>
 #include <rclcpp/callback_group.hpp>
 #include <rclcpp/create_client.hpp>
 #include <rclcpp/create_publisher.hpp>
@@ -35,9 +37,6 @@
 #include <rclcpp/node_interfaces/node_waitables_interface.hpp>
 #include <rclcpp/node_options.hpp>
 #include <rclcpp/time.hpp>
-
-#include <map>
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -70,9 +69,10 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   CLUSTER_NODE_PUBLIC
   explicit ClusterNode(
-      const std::string &cluster_name, const uint32_t node_id,
-      const std::vector<uint32_t> &cluster_node_ids,
-      const ClusterNodeOptions &options = ClusterNodeOptions());
+      const std::string& cluster_name,
+      const uint32_t node_id,
+      const std::vector<uint32_t>& cluster_node_ids,
+      const ClusterNodeOptions& options = ClusterNodeOptions());
 
   /// Create a new clustered node with the specified cluster name and node id.
   /**
@@ -84,10 +84,11 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   CLUSTER_NODE_PUBLIC
   explicit ClusterNode(
-      const std::string &cluster_name, const uint32_t node_id,
-      const std::vector<uint32_t> &cluster_node_ids,
-      const std::string &node_namespace,
-      const ClusterNodeOptions &options = ClusterNodeOptions());
+      const std::string& cluster_name,
+      const uint32_t node_id,
+      const std::vector<uint32_t>& cluster_node_ids,
+      const std::string& node_namespace,
+      const ClusterNodeOptions& options = ClusterNodeOptions());
 
   CLUSTER_NODE_PUBLIC
   virtual ~ClusterNode();
@@ -97,14 +98,14 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    * \return The name of the node.
    */
   CLUSTER_NODE_PUBLIC
-  const char *get_name() const;
+  const char* get_name() const;
 
   /// Get the namespace of the node.
   /**
    * \return The namespace of the node.
    */
   CLUSTER_NODE_PUBLIC
-  const char *get_namespace() const;
+  const char* get_namespace() const;
 
   /// Get the fully-qualified name of the node.
   /**
@@ -113,7 +114,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    * \return Fully-qualified name of the node.
    */
   CLUSTER_NODE_PUBLIC
-  const char *get_fully_qualified_name() const;
+  const char* get_fully_qualified_name() const;
 
   /// Get the logger of the node.
   /**
@@ -145,8 +146,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   CLUSTER_NODE_PUBLIC
   void for_each_callback_group(
-      const rclcpp::node_interfaces::NodeBaseInterface::CallbackGroupFunction
-          &func);
+      const rclcpp::node_interfaces::NodeBaseInterface::CallbackGroupFunction& func);
 
   /// Create a Publisher.
   /**
@@ -180,8 +180,9 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   template <typename MessageT, typename AllocatorT = std::allocator<void>>
   std::shared_ptr<ClusterNodePublisher<MessageT, AllocatorT>> create_publisher(
-      const std::string &topic_name, const rclcpp::QoS &qos,
-      const rclcpp::PublisherOptionsWithAllocator<AllocatorT> &options =
+      const std::string& topic_name,
+      const rclcpp::QoS& qos,
+      const rclcpp::PublisherOptionsWithAllocator<AllocatorT>& options =
           (rclcpp::PublisherOptionsWithAllocator<AllocatorT>()));
 
   /// Create a Subscription.
@@ -194,17 +195,20 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    *   messages.
    * \return Shared pointer to the created subscription.
    */
-  template <typename MessageT, typename CallbackT,
-            typename AllocatorT = std::allocator<void>,
-            typename CallbackMessageT = typename rclcpp::subscription_traits::
-                has_message_type<CallbackT>::type,
-            typename SubscriptionT = rclcpp::Subscription<MessageT, AllocatorT>,
-            typename MessageMemoryStrategyT = rclcpp::message_memory_strategy::
-                MessageMemoryStrategy<CallbackMessageT, AllocatorT>>
+  template <
+      typename MessageT,
+      typename CallbackT,
+      typename AllocatorT = std::allocator<void>,
+      typename CallbackMessageT =
+          typename rclcpp::subscription_traits::has_message_type<CallbackT>::type,
+      typename SubscriptionT = rclcpp::Subscription<MessageT, AllocatorT>,
+      typename MessageMemoryStrategyT = rclcpp::message_memory_strategy::
+          MessageMemoryStrategy<CallbackMessageT, AllocatorT>>
   std::shared_ptr<SubscriptionT> create_subscription(
-      const std::string &topic_name, const rclcpp::QoS &qos,
-      CallbackT &&callback,
-      const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT> &options =
+      const std::string& topic_name,
+      const rclcpp::QoS& qos,
+      CallbackT&& callback,
+      const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT>& options =
           rclcpp::SubscriptionOptionsWithAllocator<AllocatorT>(),
       typename MessageMemoryStrategyT::SharedPtr msg_mem_strat =
           (MessageMemoryStrategyT::create_default()));
@@ -215,10 +219,13 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    * \param[in] callback User-defined callback function.
    * \param[in] group Callback group to execute this timer's callback in.
    */
-  template <typename DurationRepT = int64_t, typename DurationT = std::milli,
-            typename CallbackT>
+  template <
+      typename DurationRepT = int64_t,
+      typename DurationT = std::milli,
+      typename CallbackT>
   typename rclcpp::WallTimer<CallbackT>::SharedPtr create_wall_timer(
-      std::chrono::duration<DurationRepT, DurationT> period, CallbackT callback,
+      std::chrono::duration<DurationRepT, DurationT> period,
+      CallbackT callback,
       rclcpp::CallbackGroup::SharedPtr group = nullptr);
 
   /// Create a Client.
@@ -230,8 +237,8 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   template <typename ServiceT>
   typename rclcpp::Client<ServiceT>::SharedPtr create_client(
-      const std::string &service_name,
-      const rmw_qos_profile_t &qos_profile = rmw_qos_profile_services_default,
+      const std::string& service_name,
+      const rmw_qos_profile_t& qos_profile = rmw_qos_profile_services_default,
       rclcpp::CallbackGroup::SharedPtr group = nullptr);
 
   /// Create a Service.
@@ -244,8 +251,9 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   template <typename ServiceT, typename CallbackT>
   typename ClusterNodeService<ServiceT>::SharedPtr create_service(
-      const std::string &service_name, CallbackT &&callback,
-      const rmw_qos_profile_t &qos_profile = rmw_qos_profile_services_default,
+      const std::string& service_name,
+      CallbackT&& callback,
+      const rmw_qos_profile_t& qos_profile = rmw_qos_profile_services_default,
       rclcpp::CallbackGroup::SharedPtr group = nullptr);
 
   /// Declare and initialize a parameter, return the effective value.
@@ -290,9 +298,10 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    * \throws rclcpp::exceptions::InvalidParameterTypeException
    *   if the type of the default value or override is wrong.
    */
-  CLUSTER_NODE_PUBLIC const rclcpp::ParameterValue &declare_parameter(
-      const std::string &name, const rclcpp::ParameterValue &default_value,
-      const rcl_interfaces::msg::ParameterDescriptor &parameter_descriptor =
+  CLUSTER_NODE_PUBLIC const rclcpp::ParameterValue& declare_parameter(
+      const std::string& name,
+      const rclcpp::ParameterValue& default_value,
+      const rcl_interfaces::msg::ParameterDescriptor& parameter_descriptor =
           rcl_interfaces::msg::ParameterDescriptor(),
       bool ignore_override = false);
 
@@ -314,9 +323,10 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    *   not provided or the provided override is of the wrong type.
    */
   CLUSTER_NODE_PUBLIC
-  const rclcpp::ParameterValue &declare_parameter(
-      const std::string &name, rclcpp::ParameterType type,
-      const rcl_interfaces::msg::ParameterDescriptor &parameter_descriptor =
+  const rclcpp::ParameterValue& declare_parameter(
+      const std::string& name,
+      rclcpp::ParameterType type,
+      const rcl_interfaces::msg::ParameterDescriptor& parameter_descriptor =
           rcl_interfaces::msg::ParameterDescriptor(),
       bool ignore_override = false);
 
@@ -343,8 +353,9 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   template <typename ParameterT>
   auto declare_parameter(
-      const std::string &name, const ParameterT &default_value,
-      const rcl_interfaces::msg::ParameterDescriptor &parameter_descriptor =
+      const std::string& name,
+      const ParameterT& default_value,
+      const rcl_interfaces::msg::ParameterDescriptor& parameter_descriptor =
           rcl_interfaces::msg::ParameterDescriptor(),
       bool ignore_override = false);
 
@@ -354,8 +365,8 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   template <typename ParameterT>
   auto declare_parameter(
-      const std::string &name,
-      const rcl_interfaces::msg::ParameterDescriptor &parameter_descriptor =
+      const std::string& name,
+      const rcl_interfaces::msg::ParameterDescriptor& parameter_descriptor =
           rcl_interfaces::msg::ParameterDescriptor(),
       bool ignore_override = false);
 
@@ -399,8 +410,8 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   template <typename ParameterT>
   std::vector<ParameterT> declare_parameters(
-      const std::string &parameter_namespace,
-      const std::map<std::string, ParameterT> &parameters,
+      const std::string& parameter_namespace,
+      const std::map<std::string, ParameterT>& parameters,
       bool ignore_overrides = false);
 
   /// Declare and initialize several parameters with the same namespace and
@@ -413,11 +424,10 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   template <typename ParameterT>
   std::vector<ParameterT> declare_parameters(
-      const std::string &parameter_namespace,
+      const std::string& parameter_namespace,
       const std::map<
           std::string,
-          std::pair<ParameterT, rcl_interfaces::msg::ParameterDescriptor>>
-          &parameters,
+          std::pair<ParameterT, rcl_interfaces::msg::ParameterDescriptor>>& parameters,
       bool ignore_overrides = false);
 
   /// Undeclare a previously declared parameter.
@@ -432,7 +442,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    *   was create as read_only (immutable).
    */
   CLUSTER_NODE_PUBLIC
-  void undeclare_parameter(const std::string &name);
+  void undeclare_parameter(const std::string& name);
 
   /// Return true if a given parameter is declared.
   /**
@@ -440,7 +450,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    * \return true if the parameter name has been declared, otherwise false.
    */
   CLUSTER_NODE_PUBLIC
-  bool has_parameter(const std::string &name) const;
+  bool has_parameter(const std::string& name) const;
 
   /// Set a single parameter.
   /**
@@ -473,7 +483,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   CLUSTER_NODE_PUBLIC
   rcl_interfaces::msg::SetParametersResult set_parameter(
-      const rclcpp::Parameter &parameter);
+      const rclcpp::Parameter& parameter);
 
   /// Set one or more parameters, one at a time.
   /**
@@ -511,7 +521,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   CLUSTER_NODE_PUBLIC
   std::vector<rcl_interfaces::msg::SetParametersResult> set_parameters(
-      const std::vector<rclcpp::Parameter> &parameters);
+      const std::vector<rclcpp::Parameter>& parameters);
 
   /// Set one or more parameters, all at once.
   /**
@@ -545,7 +555,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   CLUSTER_NODE_PUBLIC
   rcl_interfaces::msg::SetParametersResult set_parameters_atomically(
-      const std::vector<rclcpp::Parameter> &parameters);
+      const std::vector<rclcpp::Parameter>& parameters);
 
   /// Return the parameter by the given name.
   /**
@@ -564,7 +574,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    *   has not been declared and undeclared parameters are not allowed.
    */
   CLUSTER_NODE_PUBLIC
-  rclcpp::Parameter get_parameter(const std::string &name) const;
+  rclcpp::Parameter get_parameter(const std::string& name) const;
 
   /// Get the value of a parameter by the given name, true if it was
   /// set.
@@ -583,8 +593,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    * \return true if the parameter was previously declared, otherwise false.
    */
   CLUSTER_NODE_PUBLIC
-  bool get_parameter(const std::string &name,
-                     rclcpp::Parameter &parameter) const;
+  bool get_parameter(const std::string& name, rclcpp::Parameter& parameter) const;
 
   /// Get the value of a parameter by the given name, true if it was
   /// set.
@@ -601,7 +610,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    *   match the value of the parameter which is stored.
    */
   template <typename ParameterT>
-  bool get_parameter(const std::string &name, ParameterT &parameter) const;
+  bool get_parameter(const std::string& name, ParameterT& parameter) const;
 
   /// Get the parameter value, or the "alternative_value" if not set, and assign
   /// it to "parameter".
@@ -622,8 +631,10 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    * \returns true if the parameter was set, false otherwise.
    */
   template <typename ParameterT>
-  bool get_parameter_or(const std::string &name, ParameterT &parameter,
-                        const ParameterT &alternative_value) const;
+  bool get_parameter_or(
+      const std::string& name,
+      ParameterT& parameter,
+      const ParameterT& alternative_value) const;
 
   /// Return the parameters by the given parameter names.
   /**
@@ -645,7 +656,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   CLUSTER_NODE_PUBLIC
   std::vector<rclcpp::Parameter> get_parameters(
-      const std::vector<std::string> &names) const;
+      const std::vector<std::string>& names) const;
 
   /// Get the parameter values for all parameters that have a given prefix.
   /**
@@ -685,8 +696,8 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    *   match the value of the parameter which is stored.
    */
   template <typename ParameterT>
-  bool get_parameters(const std::string &prefix,
-                      std::map<std::string, ParameterT> &values) const;
+  bool get_parameters(
+      const std::string& prefix, std::map<std::string, ParameterT>& values) const;
 
   /// Return the parameter descriptor for the given parameter name.
   /**
@@ -708,7 +719,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   CLUSTER_NODE_PUBLIC
   rcl_interfaces::msg::ParameterDescriptor describe_parameter(
-      const std::string &name) const;
+      const std::string& name) const;
 
   /// Return a vector of parameter descriptors, one for each of the given names.
   /**
@@ -732,7 +743,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   CLUSTER_NODE_PUBLIC
   std::vector<rcl_interfaces::msg::ParameterDescriptor> describe_parameters(
-      const std::vector<std::string> &names) const;
+      const std::vector<std::string>& names) const;
 
   /// Return a vector of parameter types, one for each of the given names.
   /**
@@ -751,8 +762,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    *   allowed.
    */
   CLUSTER_NODE_PUBLIC
-  std::vector<uint8_t> get_parameter_types(
-      const std::vector<std::string> &names) const;
+  std::vector<uint8_t> get_parameter_types(const std::vector<std::string>& names) const;
 
   /// Return a list of parameters with any of the given prefixes, up to the
   /// given depth.
@@ -761,12 +771,12 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   CLUSTER_NODE_PUBLIC
   rcl_interfaces::msg::ListParametersResult list_parameters(
-      const std::vector<std::string> &prefixes, uint64_t depth) const;
+      const std::vector<std::string>& prefixes, uint64_t depth) const;
 
   using OnSetParametersCallbackHandle =
       rclcpp::node_interfaces::OnSetParametersCallbackHandle;
-  using OnParametersSetCallbackType = rclcpp::node_interfaces::
-      NodeParametersInterface::OnParametersSetCallbackType;
+  using OnParametersSetCallbackType =
+      rclcpp::node_interfaces::NodeParametersInterface::OnParametersSetCallbackType;
 
   /// Add a callback for when parameters are being set.
   /**
@@ -866,7 +876,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   CLUSTER_NODE_PUBLIC
   void remove_on_set_parameters_callback(
-      const OnSetParametersCallbackHandle *const handler);
+      const OnSetParametersCallbackHandle* const handler);
 
   /// Get the fully-qualified names of all available nodes.
   /**
@@ -883,8 +893,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    * \throws std::runtime_error anything that rcl_error can throw.
    */
   CLUSTER_NODE_PUBLIC
-  std::map<std::string, std::vector<std::string>> get_topic_names_and_types()
-      const;
+  std::map<std::string, std::vector<std::string>> get_topic_names_and_types() const;
 
   /// Return a map of existing service names to list of service types.
   /**
@@ -892,8 +901,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    * \throws std::runtime_error anything that rcl_error can throw.
    */
   CLUSTER_NODE_PUBLIC
-  std::map<std::string, std::vector<std::string>> get_service_names_and_types()
-      const;
+  std::map<std::string, std::vector<std::string>> get_service_names_and_types() const;
 
   /// Return a map of existing service names to list of service types for a
   /// specific node.
@@ -908,9 +916,8 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    * \throws std::runtime_error anything that rcl_error can throw.
    */
   CLUSTER_NODE_PUBLIC
-  std::map<std::string, std::vector<std::string>>
-  get_service_names_and_types_by_node(const std::string &node_name,
-                                      const std::string &node_namespace) const;
+  std::map<std::string, std::vector<std::string>> get_service_names_and_types_by_node(
+      const std::string& node_name, const std::string& node_namespace) const;
 
   /// Return the number of publishers created for a given topic.
   /**
@@ -920,7 +927,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    * topic. \throws std::runtime_error if publishers could not be counted.
    */
   CLUSTER_NODE_PUBLIC
-  size_t count_publishers(const std::string &topic_name) const;
+  size_t count_publishers(const std::string& topic_name) const;
 
   /// Return the number of subscribers created for a given topic.
   /**
@@ -930,7 +937,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    * topic. \throws std::runtime_error if subscribers could not be counted.
    */
   CLUSTER_NODE_PUBLIC
-  size_t count_subscribers(const std::string &topic_name) const;
+  size_t count_subscribers(const std::string& topic_name) const;
 
   /// Return the topic endpoint information about publishers on a given topic.
   /**
@@ -960,7 +967,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   CLUSTER_NODE_PUBLIC
   std::vector<rclcpp::TopicEndpointInfo> get_publishers_info_by_topic(
-      const std::string &topic_name, bool no_mangle = false) const;
+      const std::string& topic_name, bool no_mangle = false) const;
 
   /// Return the topic endpoint information about subscriptions on a given
   /// topic.
@@ -991,7 +998,7 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    */
   CLUSTER_NODE_PUBLIC
   std::vector<rclcpp::TopicEndpointInfo> get_subscriptions_info_by_topic(
-      const std::string &topic_name, bool no_mangle = false) const;
+      const std::string& topic_name, bool no_mangle = false) const;
 
   /// Return a graph event, which will be set anytime a graph change occurs.
   /* The graph Event object is a loan which must be returned.
@@ -1013,8 +1020,8 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
    *   get_graph_event().
    */
   CLUSTER_NODE_PUBLIC
-  void wait_for_graph_change(rclcpp::Event::SharedPtr event,
-                             std::chrono::nanoseconds timeout);
+  void wait_for_graph_change(
+      rclcpp::Event::SharedPtr event, std::chrono::nanoseconds timeout);
 
   /// Get a clock as a non-const shared pointer which is managed by the node.
   /**
@@ -1039,33 +1046,27 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
 
   /// Return the Node's internal NodeBaseInterface implementation.
   CLUSTER_NODE_PUBLIC
-  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr
-  get_node_base_interface();
+  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr get_node_base_interface();
 
   /// Return the Node's internal NodeClockInterface implementation.
   CLUSTER_NODE_PUBLIC
-  rclcpp::node_interfaces::NodeClockInterface::SharedPtr
-  get_node_clock_interface();
+  rclcpp::node_interfaces::NodeClockInterface::SharedPtr get_node_clock_interface();
 
   /// Return the Node's internal NodeGraphInterface implementation.
   CLUSTER_NODE_PUBLIC
-  rclcpp::node_interfaces::NodeGraphInterface::SharedPtr
-  get_node_graph_interface();
+  rclcpp::node_interfaces::NodeGraphInterface::SharedPtr get_node_graph_interface();
 
   /// Return the Node's internal NodeLoggingInterface implementation.
   CLUSTER_NODE_PUBLIC
-  rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr
-  get_node_logging_interface();
+  rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr get_node_logging_interface();
 
   /// Return the Node's internal NodeTimersInterface implementation.
   CLUSTER_NODE_PUBLIC
-  rclcpp::node_interfaces::NodeTimersInterface::SharedPtr
-  get_node_timers_interface();
+  rclcpp::node_interfaces::NodeTimersInterface::SharedPtr get_node_timers_interface();
 
   /// Return the Node's internal NodeTopicsInterface implementation.
   CLUSTER_NODE_PUBLIC
-  rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr
-  get_node_topics_interface();
+  rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr get_node_topics_interface();
 
   /// Return the Node's internal NodeServicesInterface implementation.
   CLUSTER_NODE_PUBLIC

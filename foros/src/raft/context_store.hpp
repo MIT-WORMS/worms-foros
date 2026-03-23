@@ -18,10 +18,10 @@
 #define AKIT_FAILOVER_FOROS_RAFT_CONTEXT_STORE_HPP_
 
 #include <leveldb/db.h>
-#include <rclcpp/logger.hpp>
 
 #include <list>
 #include <memory>
+#include <rclcpp/logger.hpp>
 #include <string>
 #include <vector>
 
@@ -35,7 +35,7 @@ namespace raft {
 
 class ContextStore final {
  public:
-  explicit ContextStore(const std::string &path, rclcpp::Logger &logger);
+  explicit ContextStore(const std::string& path, rclcpp::Logger& logger);
   ~ContextStore();
 
   bool current_term(const uint64_t term);
@@ -70,15 +70,15 @@ class ContextStore final {
   std::string get_log_data_key(const uint64_t id);
   std::string get_log_term_key(const uint64_t id);
 
-  const char *kCurrentTermKey = "current_term";
-  const char *kVotedForKey = "voted_for";
-  const char *kVotedKey = "voted";
-  const char *kLogKeyPrefix = "log/";
-  const char *kLogDataKeySuffix = "/data";
-  const char *kLogTermKeySuffix = "/term";
-  const char *kLogSizeKey = "log_size";
+  const char* kCurrentTermKey = "current_term";
+  const char* kVotedForKey = "voted_for";
+  const char* kVotedKey = "voted";
+  const char* kLogKeyPrefix = "log/";
+  const char* kLogDataKeySuffix = "/data";
+  const char* kLogTermKeySuffix = "/term";
+  const char* kLogSizeKey = "log_size";
 
-  leveldb::DB *db_;
+  leveldb::DB* db_;
 
   uint64_t current_term_;
   uint32_t voted_for_;

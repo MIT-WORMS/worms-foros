@@ -17,9 +17,8 @@
 #ifndef AKIT_FAILOVER_FOROS_RAFT_STATE_CANDIDATE_HPP_
 #define AKIT_FAILOVER_FOROS_RAFT_STATE_CANDIDATE_HPP_
 
-#include <rclcpp/timer.hpp>
-
 #include <memory>
+#include <rclcpp/timer.hpp>
 #include <tuple>
 
 #include "raft/context.hpp"
@@ -33,14 +32,16 @@ namespace raft {
 
 class Candidate final : public State {
  public:
-  explicit Candidate(std::shared_ptr<Context> context, rclcpp::Logger &logger)
-      : State(StateType::kCandidate,
-              {{Event::kTerminated, StateType::kStandby},
-               {Event::kTimedout, StateType::kStay},
-               {Event::kElected, StateType::kLeader},
-               {Event::kLeaderDiscovered, StateType::kFollower},
-               {Event::kNewTermReceived, StateType::kFollower}},
-              context, logger) {}
+  explicit Candidate(std::shared_ptr<Context> context, rclcpp::Logger& logger)
+      : State(
+            StateType::kCandidate,
+            {{Event::kTerminated, StateType::kStandby},
+             {Event::kTimedout, StateType::kStay},
+             {Event::kElected, StateType::kLeader},
+             {Event::kLeaderDiscovered, StateType::kFollower},
+             {Event::kNewTermReceived, StateType::kFollower}},
+            context,
+            logger) {}
 
   void on_started() override;
   void on_timedout() override;

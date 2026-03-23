@@ -24,20 +24,17 @@ namespace foros {
 
 Command::Command(std::vector<uint8_t> data) : data_(data) {}
 
-Command::Command(const char *data, uint64_t size) : data_(data, data + size) {}
+Command::Command(const char* data, uint64_t size) : data_(data, data + size) {}
 
-const std::vector<uint8_t> &Command::data() const { return data_; }
+const std::vector<uint8_t>& Command::data() const { return data_; }
 
-CommandCommitResponse::CommandCommitResponse(uint64_t id,
-                                             Command::SharedPtr command,
-                                             bool result)
+CommandCommitResponse::CommandCommitResponse(
+    uint64_t id, Command::SharedPtr command, bool result)
     : id_(id), command_(command), result_(result) {}
 
 uint64_t CommandCommitResponse::id() const { return id_; }
 
-const Command::SharedPtr CommandCommitResponse::command() const {
-  return command_;
-}
+const Command::SharedPtr CommandCommitResponse::command() const { return command_; }
 
 bool CommandCommitResponse::result() const { return result_; }
 

@@ -24,7 +24,7 @@ namespace foros {
 template <typename T>
 class Observer {
  public:
-  virtual void handle(const T &data) = 0;
+  virtual void handle(const T& data) = 0;
 };
 
 }  // namespace foros

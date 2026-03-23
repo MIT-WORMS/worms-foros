@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
+#include <chrono>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
-
-#include <chrono>
 #include <string>
 #include <vector>
 
@@ -25,7 +24,7 @@
 
 using namespace std::chrono_literals;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   try {
     const std::string kClusterName = "test_cluster_publisher";
     const std::string kTopicName = "test_cluster_echo";
@@ -57,19 +56,16 @@ int main(int argc, char **argv) {
         kClusterName, id, cluster_node_ids);
 
     node->register_on_activated([&]() { RCLCPP_INFO(logger, "activated"); });
-    node->register_on_deactivated(
-        [&]() { RCLCPP_INFO(logger, "deactivated"); });
+    node->register_on_deactivated([&]() { RCLCPP_INFO(logger, "deactivated"); });
     node->register_on_standby([&]() { RCLCPP_INFO(logger, "standby"); });
 
-    auto publisher =
-        node->create_publisher<std_msgs::msg::String>(kTopicName, 1);
+    auto publisher = node->create_publisher<std_msgs::msg::String>(kTopicName, 1);
 
-    auto timer_ =
-        rclcpp::create_timer(node, rclcpp::Clock::make_shared(), 1s, [&]() {
-          auto msg = std_msgs::msg::String();
-          msg.data = node->get_name();
-          publisher->publish(msg);
-        });
+    auto timer_ = rclcpp::create_timer(node, rclcpp::Clock::make_shared(), 1s, [&]() {
+      auto msg = std_msgs::msg::String();
+      msg.data = node->get_name();
+      publisher->publish(msg);
+    });
 
     rclcpp::spin(node->get_node_base_interface());
     rclcpp::shutdown();

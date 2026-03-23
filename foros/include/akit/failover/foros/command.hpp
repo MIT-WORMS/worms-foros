@@ -17,11 +17,10 @@
 #ifndef AKIT_FAILOVER_FOROS_COMMAND_HPP_
 #define AKIT_FAILOVER_FOROS_COMMAND_HPP_
 
-#include <rclcpp/macros.hpp>
-
 #include <functional>
 #include <future>
 #include <memory>
+#include <rclcpp/macros.hpp>
 #include <utility>
 #include <vector>
 
@@ -45,13 +44,13 @@ class Command {
    * \param[in] data Data in byte pointer.
    * \param[in] size Size of the data.
    */
-  explicit Command(const char *data, uint64_t size);
+  explicit Command(const char* data, uint64_t size);
 
   /// Get the data.
   /**
    * \return The data in byte vector.
    */
-  const std::vector<uint8_t> &data() const;
+  const std::vector<uint8_t>& data() const;
 
  private:
   std::vector<uint8_t> data_;
@@ -68,8 +67,7 @@ class CommandCommitResponse {
    * \param[in] command A command.
    * \param[in] result true if the commit is successful, otherwise false.
    */
-  explicit CommandCommitResponse(uint64_t id, Command::SharedPtr command,
-                                 bool result);
+  explicit CommandCommitResponse(uint64_t id, Command::SharedPtr command, bool result);
 
   /// Get the ID.
   /**
@@ -95,8 +93,7 @@ class CommandCommitResponse {
   const bool result_;
 };
 
-using CommandCommitResponsePromise =
-    std::promise<CommandCommitResponse::SharedPtr>;
+using CommandCommitResponsePromise = std::promise<CommandCommitResponse::SharedPtr>;
 using CommandCommitResponseSharedPromise =
     std::shared_ptr<CommandCommitResponsePromise>;
 using CommandCommitResponseSharedFuture =

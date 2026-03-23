@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-#include <rclcpp/rclcpp.hpp>
-
 #include <memory>
+#include <rclcpp/rclcpp.hpp>
 
 #include "inspector.hpp"
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   try {
     rclcpp::init(argc, argv);
 
-    auto inspector =
-        std::make_shared<akit::failover::foros_inspector::Inspector>();
+    auto inspector = std::make_shared<akit::failover::foros_inspector::Inspector>();
 
     rclcpp::spin(inspector);
     rclcpp::shutdown();

@@ -16,6 +16,8 @@
 
 #include "akit/failover/foros/cluster_node.hpp"
 
+#include <map>
+#include <memory>
 #include <rclcpp/node_interfaces/node_base.hpp>
 #include <rclcpp/node_interfaces/node_clock.hpp>
 #include <rclcpp/node_interfaces/node_graph.hpp>
@@ -25,9 +27,6 @@
 #include <rclcpp/node_interfaces/node_time_source.hpp>
 #include <rclcpp/node_interfaces/node_topics.hpp>
 #include <rclcpp/node_interfaces/node_waitables.hpp>
-
-#include <map>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -39,50 +38,70 @@ namespace akit {
 namespace failover {
 namespace foros {
 
-ClusterNode::ClusterNode(const std::string &cluster_name,
-                         const uint32_t node_id,
-                         const std::vector<uint32_t> &cluster_node_ids,
-                         const ClusterNodeOptions &options)
+ClusterNode::ClusterNode(
+    const std::string& cluster_name,
+    const uint32_t node_id,
+    const std::vector<uint32_t>& cluster_node_ids,
+    const ClusterNodeOptions& options)
     : ClusterNode(cluster_name, node_id, cluster_node_ids, "", options) {}
 
-ClusterNode::ClusterNode(const std::string &cluster_name,
-                         const uint32_t node_id,
-                         const std::vector<uint32_t> &cluster_node_ids,
-                         const std::string &node_namespace,
-                         const ClusterNodeOptions &options)
+ClusterNode::ClusterNode(
+    const std::string& cluster_name,
+    const uint32_t node_id,
+    const std::vector<uint32_t>& cluster_node_ids,
+    const std::string& node_namespace,
+    const ClusterNodeOptions& options)
     : node_base_(new rclcpp::node_interfaces::NodeBase(
-          NodeUtil::get_node_name(cluster_name, node_id), node_namespace,
-          options.context(), *(options.get_rcl_node_options()),
+          NodeUtil::get_node_name(cluster_name, node_id),
+          node_namespace,
+          options.context(),
+          *(options.get_rcl_node_options()),
           options.use_intra_process_comms(),
           options.enable_topic_statistics())),
       node_graph_(new rclcpp::node_interfaces::NodeGraph(node_base_.get())),
       node_logging_(new rclcpp::node_interfaces::NodeLogging(node_base_.get())),
       node_timers_(new rclcpp::node_interfaces::NodeTimers(node_base_.get())),
-      node_topics_(new rclcpp::node_interfaces::NodeTopics(node_base_.get(),
-                                                           node_timers_.get())),
-      node_services_(
-          new rclcpp::node_interfaces::NodeServices(node_base_.get())),
+      node_topics_(new rclcpp::node_interfaces::NodeTopics(
+          node_base_.get(), node_timers_.get())),
+      node_services_(new rclcpp::node_interfaces::NodeServices(node_base_.get())),
       node_clock_(new rclcpp::node_interfaces::NodeClock(
-          node_base_, node_topics_, node_graph_, node_services_,
-          node_logging_)),
+          node_base_, node_topics_, node_graph_, node_services_, node_logging_)),
       node_parameters_(new rclcpp::node_interfaces::NodeParameters(
-          node_base_, node_logging_, node_topics_, node_services_, node_clock_,
-          options.parameter_overrides(), options.start_parameter_services(),
+          node_base_,
+          node_logging_,
+          node_topics_,
+          node_services_,
+          node_clock_,
+          options.parameter_overrides(),
+          options.start_parameter_services(),
           options.start_parameter_event_publisher(),
           options.parameter_event_qos(),
           options.parameter_event_publisher_options(),
           options.allow_undeclared_parameters(),
           options.automatically_declare_parameters_from_overrides())),
       node_time_source_(new rclcpp::node_interfaces::NodeTimeSource(
-          node_base_, node_topics_, node_graph_, node_services_, node_logging_,
-          node_clock_, node_parameters_, options.clock_qos(),
+          node_base_,
+          node_topics_,
+          node_graph_,
+          node_services_,
+          node_logging_,
+          node_clock_,
+          node_parameters_,
+          options.clock_qos(),
           options.use_clock_thread())),
-      node_waitables_(
-          new rclcpp::node_interfaces::NodeWaitables(node_base_.get())),
+      node_waitables_(new rclcpp::node_interfaces::NodeWaitables(node_base_.get())),
       impl_(std::make_unique<ClusterNodeImpl>(
-          cluster_name, node_id, cluster_node_ids, node_base_, node_graph_,
-          node_logging_, node_services_, node_topics_, node_timers_,
-          node_clock_, options)) {}
+          cluster_name,
+          node_id,
+          cluster_node_ids,
+          node_base_,
+          node_graph_,
+          node_logging_,
+          node_services_,
+          node_topics_,
+          node_timers_,
+          node_clock_,
+          options)) {}
 
 ClusterNode::~ClusterNode() {
   // release sub-interfaces in an order that allows them to consult with
@@ -98,19 +117,15 @@ ClusterNode::~ClusterNode() {
   node_graph_.reset();
 }
 
-const char *ClusterNode::get_name() const { return node_base_->get_name(); }
+const char* ClusterNode::get_name() const { return node_base_->get_name(); }
 
-const char *ClusterNode::get_namespace() const {
-  return node_base_->get_namespace();
-}
+const char* ClusterNode::get_namespace() const { return node_base_->get_namespace(); }
 
-const char *ClusterNode::get_fully_qualified_name() const {
+const char* ClusterNode::get_fully_qualified_name() const {
   return node_base_->get_fully_qualified_name();
 }
 
-rclcpp::Logger ClusterNode::get_logger() const {
-  return node_logging_->get_logger();
-}
+rclcpp::Logger ClusterNode::get_logger() const { return node_logging_->get_logger(); }
 
 rclcpp::CallbackGroup::SharedPtr ClusterNode::create_callback_group(
     rclcpp::CallbackGroupType group_type,
@@ -120,66 +135,67 @@ rclcpp::CallbackGroup::SharedPtr ClusterNode::create_callback_group(
 }
 
 void ClusterNode::for_each_callback_group(
-    const rclcpp::node_interfaces::NodeBaseInterface::CallbackGroupFunction
-        &func) {
+    const rclcpp::node_interfaces::NodeBaseInterface::CallbackGroupFunction& func) {
   node_base_->for_each_callback_group(func);
 }
 
-const rclcpp::ParameterValue &ClusterNode::declare_parameter(
-    const std::string &name, const rclcpp::ParameterValue &default_value,
-    const rcl_interfaces::msg::ParameterDescriptor &parameter_descriptor,
+const rclcpp::ParameterValue& ClusterNode::declare_parameter(
+    const std::string& name,
+    const rclcpp::ParameterValue& default_value,
+    const rcl_interfaces::msg::ParameterDescriptor& parameter_descriptor,
     bool ignore_override) {
   return node_parameters_->declare_parameter(
       name, default_value, parameter_descriptor, ignore_override);
 }
 
-const rclcpp::ParameterValue &ClusterNode::declare_parameter(
-    const std::string &name, rclcpp::ParameterType type,
-    const rcl_interfaces::msg::ParameterDescriptor &parameter_descriptor,
+const rclcpp::ParameterValue& ClusterNode::declare_parameter(
+    const std::string& name,
+    rclcpp::ParameterType type,
+    const rcl_interfaces::msg::ParameterDescriptor& parameter_descriptor,
     bool ignore_override) {
-  return node_parameters_->declare_parameter(name, type, parameter_descriptor,
-                                             ignore_override);
+  return node_parameters_->declare_parameter(
+      name, type, parameter_descriptor, ignore_override);
 }
 
-void ClusterNode::undeclare_parameter(const std::string &name) {
+void ClusterNode::undeclare_parameter(const std::string& name) {
   node_parameters_->undeclare_parameter(name);
 }
 
-bool ClusterNode::has_parameter(const std::string &name) const {
+bool ClusterNode::has_parameter(const std::string& name) const {
   return node_parameters_->has_parameter(name);
 }
 
 rcl_interfaces::msg::SetParametersResult ClusterNode::set_parameter(
-    const rclcpp::Parameter &parameter) {
+    const rclcpp::Parameter& parameter) {
   return set_parameters_atomically({parameter});
 }
 
-std::vector<rcl_interfaces::msg::SetParametersResult>
-ClusterNode::set_parameters(const std::vector<rclcpp::Parameter> &parameters) {
+std::vector<rcl_interfaces::msg::SetParametersResult> ClusterNode::set_parameters(
+    const std::vector<rclcpp::Parameter>& parameters) {
   return node_parameters_->set_parameters(parameters);
 }
 
 rcl_interfaces::msg::SetParametersResult ClusterNode::set_parameters_atomically(
-    const std::vector<rclcpp::Parameter> &parameters) {
+    const std::vector<rclcpp::Parameter>& parameters) {
   return node_parameters_->set_parameters_atomically(parameters);
 }
 
-rclcpp::Parameter ClusterNode::get_parameter(const std::string &name) const {
+rclcpp::Parameter ClusterNode::get_parameter(const std::string& name) const {
   return node_parameters_->get_parameter(name);
 }
 
-bool ClusterNode::get_parameter(const std::string &name,
-                                rclcpp::Parameter &parameter) const {
+bool ClusterNode::get_parameter(
+    const std::string& name, rclcpp::Parameter& parameter) const {
   return node_parameters_->get_parameter(name, parameter);
 }
 
 std::vector<rclcpp::Parameter> ClusterNode::get_parameters(
-    const std::vector<std::string> &names) const {
+    const std::vector<std::string>& names) const {
   return node_parameters_->get_parameters(names);
 }
 
 rcl_interfaces::msg::ParameterDescriptor ClusterNode::describe_parameter(
-    const std::string &name) const {
+    const std::string& name) const {
   auto result = node_parameters_->describe_parameters({name});
   if (0 == result.size()) {
     throw rclcpp::exceptions::ParameterNotDeclaredException(name);
@@ -191,29 +207,28 @@ rcl_interfaces::msg::ParameterDescriptor ClusterNode::describe_parameter(
   return result.front();
 }
 
-std::vector<rcl_interfaces::msg::ParameterDescriptor>
-ClusterNode::describe_parameters(const std::vector<std::string> &names) const {
+std::vector<rcl_interfaces::msg::ParameterDescriptor> ClusterNode::describe_parameters(
+    const std::vector<std::string>& names) const {
   return node_parameters_->describe_parameters(names);
 }
 
 std::vector<uint8_t> ClusterNode::get_parameter_types(
-    const std::vector<std::string> &names) const {
+    const std::vector<std::string>& names) const {
   return node_parameters_->get_parameter_types(names);
 }
 
 rcl_interfaces::msg::ListParametersResult ClusterNode::list_parameters(
-    const std::vector<std::string> &prefixes, uint64_t depth) const {
+    const std::vector<std::string>& prefixes, uint64_t depth) const {
   return node_parameters_->list_parameters(prefixes, depth);
 }
 
 ClusterNode::OnSetParametersCallbackHandle::SharedPtr
-ClusterNode::add_on_set_parameters_callback(
-    OnParametersSetCallbackType callback) {
+ClusterNode::add_on_set_parameters_callback(OnParametersSetCallbackType callback) {
   return node_parameters_->add_on_set_parameters_callback(callback);
 }
 
 void ClusterNode::remove_on_set_parameters_callback(
-    const OnSetParametersCallbackHandle *const callback) {
+    const OnSetParametersCallbackHandle* const callback) {
   return node_parameters_->remove_on_set_parameters_callback(callback);
 }
 
@@ -221,8 +236,8 @@ std::vector<std::string> ClusterNode::get_node_names() const {
   return node_graph_->get_node_names();
 }
 
-std::map<std::string, std::vector<std::string>>
-ClusterNode::get_topic_names_and_types() const {
+std::map<std::string, std::vector<std::string>> ClusterNode::get_topic_names_and_types()
+    const {
   return node_graph_->get_topic_names_and_types();
 }
 
@@ -233,28 +248,25 @@ ClusterNode::get_service_names_and_types() const {
 
 std::map<std::string, std::vector<std::string>>
 ClusterNode::get_service_names_and_types_by_node(
-    const std::string &node_name, const std::string &node_namespace) const {
-  return node_graph_->get_service_names_and_types_by_node(node_name,
-                                                          node_namespace);
+    const std::string& node_name, const std::string& node_namespace) const {
+  return node_graph_->get_service_names_and_types_by_node(node_name, node_namespace);
 }
 
-size_t ClusterNode::count_publishers(const std::string &topic_name) const {
+size_t ClusterNode::count_publishers(const std::string& topic_name) const {
   return node_graph_->count_publishers(topic_name);
 }
 
-size_t ClusterNode::count_subscribers(const std::string &topic_name) const {
+size_t ClusterNode::count_subscribers(const std::string& topic_name) const {
   return node_graph_->count_subscribers(topic_name);
 }
 
-std::vector<rclcpp::TopicEndpointInfo>
-ClusterNode::get_publishers_info_by_topic(const std::string &topic_name,
-                                          bool no_mangle) const {
+std::vector<rclcpp::TopicEndpointInfo> ClusterNode::get_publishers_info_by_topic(
+    const std::string& topic_name, bool no_mangle) const {
   return node_graph_->get_publishers_info_by_topic(topic_name, no_mangle);
 }
 
-std::vector<rclcpp::TopicEndpointInfo>
-ClusterNode::get_subscriptions_info_by_topic(const std::string &topic_name,
-                                             bool no_mangle) const {
+std::vector<rclcpp::TopicEndpointInfo> ClusterNode::get_subscriptions_info_by_topic(
+    const std::string& topic_name, bool no_mangle) const {
   return node_graph_->get_subscriptions_info_by_topic(topic_name, no_mangle);
 }
 
@@ -262,22 +274,18 @@ rclcpp::Event::SharedPtr ClusterNode::get_graph_event() {
   return node_graph_->get_graph_event();
 }
 
-void ClusterNode::wait_for_graph_change(rclcpp::Event::SharedPtr event,
-                                        std::chrono::nanoseconds timeout) {
+void ClusterNode::wait_for_graph_change(
+    rclcpp::Event::SharedPtr event, std::chrono::nanoseconds timeout) {
   node_graph_->wait_for_graph_change(event, timeout);
 }
 
-rclcpp::Clock::SharedPtr ClusterNode::get_clock() {
-  return node_clock_->get_clock();
-}
+rclcpp::Clock::SharedPtr ClusterNode::get_clock() { return node_clock_->get_clock(); }
 
 rclcpp::Clock::ConstSharedPtr ClusterNode::get_clock() const {
   return node_clock_->get_clock();
 }
 
-rclcpp::Time ClusterNode::now() const {
-  return node_clock_->get_clock()->now();
-}
+rclcpp::Time ClusterNode::now() const { return node_clock_->get_clock()->now(); }
 
 rclcpp::node_interfaces::NodeBaseInterface::SharedPtr
 ClusterNode::get_node_base_interface() {
@@ -359,8 +367,7 @@ void ClusterNode::register_on_committed(
   impl_->register_on_committed(callback);
 }
 
-void ClusterNode::register_on_reverted(
-    std::function<void(const uint64_t)> callback) {
+void ClusterNode::register_on_reverted(std::function<void(const uint64_t)> callback) {
   impl_->register_on_reverted(callback);
 }
 

@@ -16,12 +16,12 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <rclcpp/logger.hpp>
-#include <rclcpp/rclcpp.hpp>
 
 #include <chrono>
 #include <filesystem>
 #include <memory>
+#include <rclcpp/logger.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <string>
 #include <vector>
 
@@ -44,8 +44,7 @@ class TestRaft : public ::testing::Test {
   const uint32_t kNodeId = 0;
   const uint32_t kOtherNodeId = 1;
   const std::vector<uint32_t> kClusterIds = std::initializer_list<uint32_t>{0};
-  const std::vector<uint32_t> kClusterIds2 =
-      std::initializer_list<uint32_t>{0, 1};
+  const std::vector<uint32_t> kClusterIds2 = std::initializer_list<uint32_t>{0, 1};
   const uint8_t kTestData = 'a';
   const uint64_t kCurrentTerm = 10;
   const uint32_t kVotedFor = 1;
@@ -73,38 +72,50 @@ class MockStateMachineInterface
 
 class TestContext : public akit::failover::foros::raft::Context {
  public:
-  TestContext(const std::string& cluster_name, const uint32_t node_id,
-              rclcpp::Node::SharedPtr node,
-              const unsigned int election_timeout_min,
-              const unsigned int election_timeout_max,
-              const std::string& temp_directory, rclcpp::Logger& logger)
+  TestContext(
+      const std::string& cluster_name,
+      const uint32_t node_id,
+      rclcpp::Node::SharedPtr node,
+      const unsigned int election_timeout_min,
+      const unsigned int election_timeout_max,
+      const std::string& temp_directory,
+      rclcpp::Logger& logger)
       : akit::failover::foros::raft::Context(
-            cluster_name, node_id, node->get_node_base_interface(),
+            cluster_name,
+            node_id,
+            node->get_node_base_interface(),
             node->get_node_graph_interface(),
             node->get_node_services_interface(),
             node->get_node_topics_interface(),
-            node->get_node_timers_interface(), node->get_node_clock_interface(),
-            election_timeout_min, election_timeout_max, temp_directory, logger),
+            node->get_node_timers_interface(),
+            node->get_node_clock_interface(),
+            election_timeout_min,
+            election_timeout_max,
+            temp_directory,
+            logger),
         cluster_name_(cluster_name),
         node_id_(node_id) {
     rcl_client_options_t client_options = rcl_client_get_default_options();
     client_options.qos = rmw_qos_profile_services_default;
 
-    append_entries_ =
-        rclcpp::Client<foros_msgs::srv::AppendEntries>::make_shared(
-            node->get_node_base_interface().get(),
-            node->get_node_graph_interface(),
-            akit::failover::foros::NodeUtil::get_service_name(
-                cluster_name, node_id,
-                akit::failover::foros::NodeUtil::kAppendEntriesServiceName),
-            client_options);
+    append_entries_ = rclcpp::Client<foros_msgs::srv::AppendEntries>::make_shared(
+        node->get_node_base_interface().get(),
+        node->get_node_graph_interface(),
+        akit::failover::foros::NodeUtil::get_service_name(
+            cluster_name,
+            node_id,
+            akit::failover::foros::NodeUtil::kAppendEntriesServiceName),
+        client_options);
   }
 
   rclcpp::Client<foros_msgs::srv::AppendEntries>::SharedFuture
-  send_append_entries_to_me(uint64_t term, uint32_t leader_id,
-                            uint64_t leader_commit, uint64_t prev_log_index,
-                            uint64_t prev_log_term,
-                            std::vector<uint8_t> entries) {
+  send_append_entries_to_me(
+      uint64_t term,
+      uint32_t leader_id,
+      uint64_t leader_commit,
+      uint64_t prev_log_index,
+      uint64_t prev_log_term,
+      std::vector<uint8_t> entries) {
     auto request = std::make_shared<foros_msgs::srv::AppendEntries::Request>();
     request->term = term;
     request->leader_id = leader_id;
@@ -150,9 +161,10 @@ TEST_F(TestRaft, TestContextStore) {
   EXPECT_EQ(store.logs_size(), (uint64_t)0);
   auto command = akit::failover::foros::Command::make_shared(
       std::initializer_list<uint8_t>{kTestData});
-  EXPECT_EQ(store.push_log(akit::failover::foros::raft::LogEntry::make_shared(
-                0, kCurrentTerm, command)),
-            true);
+  EXPECT_EQ(
+      store.push_log(
+          akit::failover::foros::raft::LogEntry::make_shared(0, kCurrentTerm, command)),
+      true);
   EXPECT_EQ(store.logs_size(), (uint64_t)1);
 
   auto log = store.log(0);
@@ -168,14 +180,16 @@ TEST_F(TestRaft, TestContextStore) {
 
   uint64_t i;
   for (i = 0; i < kMaxCommitSize; i++) {
-    EXPECT_EQ(store.push_log(akit::failover::foros::raft::LogEntry::make_shared(
-                  i, kCurrentTerm, command)),
-              true);
+    EXPECT_EQ(
+        store.push_log(akit::failover::foros::raft::LogEntry::make_shared(
+            i, kCurrentTerm, command)),
+        true);
   }
   // push log with invalid ID
-  EXPECT_EQ(store.push_log(akit::failover::foros::raft::LogEntry::make_shared(
-                i + 1, kCurrentTerm, command)),
-            false);
+  EXPECT_EQ(
+      store.push_log(akit::failover::foros::raft::LogEntry::make_shared(
+          i + 1, kCurrentTerm, command)),
+      false);
 }
 
 TEST_F(TestRaft, TestContextStoreWithInitialData) {
@@ -195,8 +209,7 @@ TEST_F(TestRaft, TestContextStoreWithInitialData) {
 }
 
 TEST_F(TestRaft, TestContextStoreWithInvalidPath) {
-  auto store =
-      akit::failover::foros::raft::ContextStore(kInvalidStorePath, logger_);
+  auto store = akit::failover::foros::raft::ContextStore(kInvalidStorePath, logger_);
 
   // test current term
   EXPECT_EQ(store.current_term(), (uint64_t)0);
@@ -223,18 +236,25 @@ TEST_F(TestRaft, TestContextTermMethods) {
 
   auto node = rclcpp::Node(kClusterName + std::to_string(kNodeId));
   auto context = akit::failover::foros::raft::Context(
-      kClusterName, kNodeId, node.get_node_base_interface(),
-      node.get_node_graph_interface(), node.get_node_services_interface(),
-      node.get_node_topics_interface(), node.get_node_timers_interface(),
-      node.get_node_clock_interface(), kElectionTimeoutMin, kElectionTimeoutMax,
-      kTempPath, logger_);
+      kClusterName,
+      kNodeId,
+      node.get_node_base_interface(),
+      node.get_node_graph_interface(),
+      node.get_node_services_interface(),
+      node.get_node_topics_interface(),
+      node.get_node_timers_interface(),
+      node.get_node_clock_interface(),
+      kElectionTimeoutMin,
+      kElectionTimeoutMax,
+      kTempPath,
+      logger_);
 
   MockStateMachineInterface state_machine;
   ON_CALL(state_machine, is_leader()).WillByDefault(testing::Return(true));
   context.initialize(kClusterIds, &state_machine);
 
-  EXPECT_EQ(context.get_node_name(),
-            std::string(kClusterName + std::to_string(kNodeId)));
+  EXPECT_EQ(
+      context.get_node_name(), std::string(kClusterName + std::to_string(kNodeId)));
 
   auto term = context.get_term();
   context.increase_term();
@@ -249,20 +269,22 @@ TEST_F(TestRaft, TestContextLeaderCommandCommit) {
   }
 
   auto context = TestContext(
-      kClusterName, kNodeId,
+      kClusterName,
+      kNodeId,
       rclcpp::Node::make_shared(kClusterName + std::to_string(kNodeId)),
-      kElectionTimeoutMin, kElectionTimeoutMax, kTempPath, logger_);
+      kElectionTimeoutMin,
+      kElectionTimeoutMax,
+      kTempPath,
+      logger_);
 
   MockStateMachineInterface state_machine;
   ON_CALL(state_machine, is_leader()).WillByDefault(testing::Return(true));
   context.initialize(kClusterIds, &state_machine);
 
-  testing::MockFunction<void(const uint64_t,
-                             akit::failover::foros::Command::SharedPtr)>
+  testing::MockFunction<void(const uint64_t, akit::failover::foros::Command::SharedPtr)>
       on_committed_callback;
   testing::MockFunction<void(const uint64_t)> on_reverted_callback;
-  testing::MockFunction<void(
-      akit::failover::foros::CommandCommitResponseSharedFuture)>
+  testing::MockFunction<void(akit::failover::foros::CommandCommitResponseSharedFuture)>
       on_commit_response;
 
   auto next_id = context.get_commands_size();
@@ -277,10 +299,10 @@ TEST_F(TestRaft, TestContextLeaderCommandCommit) {
   context.register_on_reverted(on_reverted_callback.AsStdFunction());
 
   EXPECT_EQ(context.get_commands_size(), (uint64_t)0);
-  auto future =
-      context.commit_command(akit::failover::foros::Command::make_shared(
-                                 std::initializer_list<uint8_t>{kTestData}),
-                             on_commit_response.AsStdFunction());
+  auto future = context.commit_command(
+      akit::failover::foros::Command::make_shared(
+          std::initializer_list<uint8_t>{kTestData}),
+      on_commit_response.AsStdFunction());
 
   EXPECT_EQ(context.get_commands_size(), (uint64_t)1);
 
@@ -297,20 +319,22 @@ TEST_F(TestRaft, TestContextNonLeaderCommandCommit) {
   }
 
   auto context = TestContext(
-      kClusterName, kNodeId,
+      kClusterName,
+      kNodeId,
       rclcpp::Node::make_shared(kClusterName + std::to_string(kNodeId)),
-      kElectionTimeoutMin, kElectionTimeoutMax, kTempPath, logger_);
+      kElectionTimeoutMin,
+      kElectionTimeoutMax,
+      kTempPath,
+      logger_);
 
   MockStateMachineInterface state_machine;
   ON_CALL(state_machine, is_leader()).WillByDefault(testing::Return(false));
   context.initialize(kClusterIds, &state_machine);
 
-  testing::MockFunction<void(const uint64_t,
-                             akit::failover::foros::Command::SharedPtr)>
+  testing::MockFunction<void(const uint64_t, akit::failover::foros::Command::SharedPtr)>
       on_committed_callback;
   testing::MockFunction<void(const uint64_t)> on_reverted_callback;
-  testing::MockFunction<void(
-      akit::failover::foros::CommandCommitResponseSharedFuture)>
+  testing::MockFunction<void(akit::failover::foros::CommandCommitResponseSharedFuture)>
       on_commit_response;
 
   auto next_id = context.get_commands_size();
@@ -324,10 +348,10 @@ TEST_F(TestRaft, TestContextNonLeaderCommandCommit) {
   context.register_on_reverted(on_reverted_callback.AsStdFunction());
 
   EXPECT_EQ(context.get_commands_size(), (uint64_t)0);
-  auto future =
-      context.commit_command(akit::failover::foros::Command::make_shared(
-                                 std::initializer_list<uint8_t>{kTestData}),
-                             on_commit_response.AsStdFunction());
+  auto future = context.commit_command(
+      akit::failover::foros::Command::make_shared(
+          std::initializer_list<uint8_t>{kTestData}),
+      on_commit_response.AsStdFunction());
 
   EXPECT_EQ(context.get_commands_size(), (uint64_t)0);
 }
@@ -340,20 +364,22 @@ TEST_F(TestRaft, TestContextCommandCommitPending) {
   }
 
   auto context = TestContext(
-      kClusterName, kNodeId,
+      kClusterName,
+      kNodeId,
       rclcpp::Node::make_shared(kClusterName + std::to_string(kNodeId)),
-      kElectionTimeoutMin, kElectionTimeoutMax, kTempPath, logger_);
+      kElectionTimeoutMin,
+      kElectionTimeoutMax,
+      kTempPath,
+      logger_);
 
   MockStateMachineInterface state_machine;
   ON_CALL(state_machine, is_leader()).WillByDefault(testing::Return(true));
   context.initialize(kClusterIds2, &state_machine);
 
-  testing::MockFunction<void(const uint64_t,
-                             akit::failover::foros::Command::SharedPtr)>
+  testing::MockFunction<void(const uint64_t, akit::failover::foros::Command::SharedPtr)>
       on_committed_callback;
   testing::MockFunction<void(const uint64_t)> on_reverted_callback;
-  testing::MockFunction<void(
-      akit::failover::foros::CommandCommitResponseSharedFuture)>
+  testing::MockFunction<void(akit::failover::foros::CommandCommitResponseSharedFuture)>
       on_commit_response;
 
   auto next_id = context.get_commands_size();
@@ -367,10 +393,10 @@ TEST_F(TestRaft, TestContextCommandCommitPending) {
   context.register_on_reverted(on_reverted_callback.AsStdFunction());
 
   EXPECT_EQ(context.get_commands_size(), (uint64_t)0);
-  auto future =
-      context.commit_command(akit::failover::foros::Command::make_shared(
-                                 std::initializer_list<uint8_t>{kTestData}),
-                             on_commit_response.AsStdFunction());
+  auto future = context.commit_command(
+      akit::failover::foros::Command::make_shared(
+          std::initializer_list<uint8_t>{kTestData}),
+      on_commit_response.AsStdFunction());
 
   EXPECT_EQ(context.get_commands_size(), (uint64_t)0);
 }
@@ -382,8 +408,14 @@ TEST_F(TestRaft, TestContextAppendEntriesReceived) {
     RCLCPP_ERROR(logger_, "failed to remove file %s", err.what());
   }
   auto node = rclcpp::Node::make_shared(kClusterName + std::to_string(kNodeId));
-  auto context = TestContext(kClusterName, kNodeId, node, kElectionTimeoutMin,
-                             kElectionTimeoutMax, kTempPath, logger_);
+  auto context = TestContext(
+      kClusterName,
+      kNodeId,
+      node,
+      kElectionTimeoutMin,
+      kElectionTimeoutMax,
+      kTempPath,
+      logger_);
 
   MockStateMachineInterface state_machine;
   ON_CALL(state_machine, is_leader()).WillByDefault(testing::Return(true));
@@ -394,7 +426,11 @@ TEST_F(TestRaft, TestContextAppendEntriesReceived) {
   uint64_t prev_index = 0;
   for (uint64_t i = 0; i < 3; i++) {
     auto future = context.send_append_entries_to_me(
-        kCurrentTerm, kOtherNodeId, i, prev_index, kCurrentTerm,
+        kCurrentTerm,
+        kOtherNodeId,
+        i,
+        prev_index,
+        kCurrentTerm,
         std::initializer_list<uint8_t>{kTestData});
 
     rclcpp::spin_until_future_complete(node, future, std::chrono::seconds(1));
@@ -414,8 +450,14 @@ TEST_F(TestRaft, TestContextInvalidAppendEntriesReceived) {
     RCLCPP_ERROR(logger_, "failed to remove file %s", err.what());
   }
   auto node = rclcpp::Node::make_shared(kClusterName + std::to_string(kNodeId));
-  auto context = TestContext(kClusterName, kNodeId, node, kElectionTimeoutMin,
-                             kElectionTimeoutMax, kTempPath, logger_);
+  auto context = TestContext(
+      kClusterName,
+      kNodeId,
+      node,
+      kElectionTimeoutMin,
+      kElectionTimeoutMax,
+      kTempPath,
+      logger_);
 
   MockStateMachineInterface state_machine;
   ON_CALL(state_machine, is_leader()).WillByDefault(testing::Return(true));
@@ -426,7 +468,11 @@ TEST_F(TestRaft, TestContextInvalidAppendEntriesReceived) {
   uint64_t prev_index = 0;
   for (uint64_t i = 1; i < 4; i++) {
     auto future = context.send_append_entries_to_me(
-        kCurrentTerm, kOtherNodeId, i, prev_index, kCurrentTerm,
+        kCurrentTerm,
+        kOtherNodeId,
+        i,
+        prev_index,
+        kCurrentTerm,
         std::initializer_list<uint8_t>{kTestData});
 
     rclcpp::spin_until_future_complete(node, future, std::chrono::seconds(1));
@@ -445,8 +491,14 @@ TEST_F(TestRaft, TestContextAppendEntriesReceivedForRollback) {
     RCLCPP_ERROR(logger_, "failed to remove file %s", err.what());
   }
   auto node = rclcpp::Node::make_shared(kClusterName + std::to_string(kNodeId));
-  auto context = TestContext(kClusterName, kNodeId, node, kElectionTimeoutMin,
-                             kElectionTimeoutMax, kTempPath, logger_);
+  auto context = TestContext(
+      kClusterName,
+      kNodeId,
+      node,
+      kElectionTimeoutMin,
+      kElectionTimeoutMax,
+      kTempPath,
+      logger_);
 
   MockStateMachineInterface state_machine;
   ON_CALL(state_machine, is_leader()).WillByDefault(testing::Return(true));
@@ -455,7 +507,11 @@ TEST_F(TestRaft, TestContextAppendEntriesReceivedForRollback) {
 
   // Pretend we received entries from other node
   auto future = context.send_append_entries_to_me(
-      kCurrentTerm, kOtherNodeId, 0, 0, kCurrentTerm,
+      kCurrentTerm,
+      kOtherNodeId,
+      0,
+      0,
+      kCurrentTerm,
       std::initializer_list<uint8_t>{kTestData});
 
   rclcpp::spin_until_future_complete(node, future, std::chrono::seconds(1));
@@ -467,7 +523,11 @@ TEST_F(TestRaft, TestContextAppendEntriesReceivedForRollback) {
 
   // Send entries with invalid prev data
   future = context.send_append_entries_to_me(
-      kCurrentTerm, kOtherNodeId, 1, 0, kCurrentTerm + 1,
+      kCurrentTerm,
+      kOtherNodeId,
+      1,
+      0,
+      kCurrentTerm + 1,
       std::initializer_list<uint8_t>{kTestData});
 
   rclcpp::spin_until_future_complete(node, future, std::chrono::seconds(1));
@@ -485,115 +545,119 @@ TEST_F(TestRaft, TestStateMachine) {
   }
   auto node = rclcpp::Node::make_shared(kClusterName + std::to_string(kNodeId));
   auto context = std::make_shared<TestContext>(
-      kClusterName, kNodeId, node, kElectionTimeoutMin, kElectionTimeoutMax,
-      kTempPath, logger_);
+      kClusterName,
+      kNodeId,
+      node,
+      kElectionTimeoutMin,
+      kElectionTimeoutMax,
+      kTempPath,
+      logger_);
 
   MockStateMachineInterface state_machine;
   context->initialize(kClusterIds2, &state_machine);
 
-  auto fsm =
-      akit::failover::foros::raft::StateMachine(kClusterIds2, context, logger_);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kStandby);
+  auto fsm = akit::failover::foros::raft::StateMachine(kClusterIds2, context, logger_);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kStandby);
   fsm.handle(akit::failover::foros::raft::Event::kStarted);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kFollower);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kFollower);
   fsm.handle(akit::failover::foros::raft::Event::kTerminated);
 
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kStandby);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kStandby);
   fsm.handle(akit::failover::foros::raft::Event::kStarted);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kFollower);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kFollower);
   fsm.handle(akit::failover::foros::raft::Event::kTimedout);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kCandidate);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kCandidate);
   fsm.handle(akit::failover::foros::raft::Event::kTerminated);
 
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kStandby);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kStandby);
   fsm.handle(akit::failover::foros::raft::Event::kStarted);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kFollower);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kFollower);
   fsm.handle(akit::failover::foros::raft::Event::kTimedout);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kCandidate);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kCandidate);
   fsm.handle(akit::failover::foros::raft::Event::kTimedout);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kCandidate);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kCandidate);
   fsm.handle(akit::failover::foros::raft::Event::kTerminated);
 
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kStandby);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kStandby);
   fsm.handle(akit::failover::foros::raft::Event::kStarted);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kFollower);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kFollower);
   fsm.handle(akit::failover::foros::raft::Event::kTimedout);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kCandidate);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kCandidate);
   fsm.handle(akit::failover::foros::raft::Event::kNewTermReceived);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kFollower);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kFollower);
   fsm.handle(akit::failover::foros::raft::Event::kTerminated);
 
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kStandby);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kStandby);
   fsm.handle(akit::failover::foros::raft::Event::kStarted);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kFollower);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kFollower);
   fsm.handle(akit::failover::foros::raft::Event::kTimedout);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kCandidate);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kCandidate);
   fsm.handle(akit::failover::foros::raft::Event::kLeaderDiscovered);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kFollower);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kFollower);
   fsm.handle(akit::failover::foros::raft::Event::kTerminated);
 
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kStandby);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kStandby);
   fsm.handle(akit::failover::foros::raft::Event::kStarted);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kFollower);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kFollower);
   fsm.handle(akit::failover::foros::raft::Event::kTimedout);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kCandidate);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kCandidate);
   fsm.handle(akit::failover::foros::raft::Event::kElected);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kLeader);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kLeader);
   fsm.handle(akit::failover::foros::raft::Event::kTerminated);
 
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kStandby);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kStandby);
   fsm.handle(akit::failover::foros::raft::Event::kStarted);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kFollower);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kFollower);
   fsm.handle(akit::failover::foros::raft::Event::kTimedout);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kCandidate);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kCandidate);
   fsm.handle(akit::failover::foros::raft::Event::kElected);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kLeader);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kLeader);
   fsm.handle(akit::failover::foros::raft::Event::kLeaderDiscovered);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kFollower);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kFollower);
   fsm.handle(akit::failover::foros::raft::Event::kTerminated);
 
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kStandby);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kStandby);
   fsm.handle(akit::failover::foros::raft::Event::kStarted);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kFollower);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kFollower);
   fsm.handle(akit::failover::foros::raft::Event::kTimedout);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kCandidate);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kCandidate);
   fsm.handle(akit::failover::foros::raft::Event::kElected);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kLeader);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kLeader);
   fsm.handle(akit::failover::foros::raft::Event::kNewTermReceived);
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kFollower);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kFollower);
   fsm.handle(akit::failover::foros::raft::Event::kTerminated);
 
-  EXPECT_EQ(fsm.get_current_state_type(),
-            akit::failover::foros::raft::StateType::kStandby);
+  EXPECT_EQ(
+      fsm.get_current_state_type(), akit::failover::foros::raft::StateType::kStandby);
 }

@@ -66,21 +66,22 @@ Inspector::~Inspector() {
 
 void Inspector::initialize_publisher(
     rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics) {
-  inspector_publisher_ = std::dynamic_pointer_cast<
-      rclcpp::Publisher<foros_msgs::msg::Inspector>>(
-      node_topics->create_publisher(
-          foros_msgs::msg::Inspector::TOPIC_NAME,
-          rclcpp::create_publisher_factory<
-              foros_msgs::msg::Inspector, std::allocator<void>,
-              rclcpp::Publisher<foros_msgs::msg::Inspector>>(
-              rclcpp::PublisherOptionsWithAllocator<std::allocator<void>>()),
-          rclcpp::QoS(0)));
+  inspector_publisher_ =
+      std::dynamic_pointer_cast<rclcpp::Publisher<foros_msgs::msg::Inspector>>(
+          node_topics->create_publisher(
+              foros_msgs::msg::Inspector::TOPIC_NAME,
+              rclcpp::create_publisher_factory<
+                  foros_msgs::msg::Inspector,
+                  std::allocator<void>,
+                  rclcpp::Publisher<foros_msgs::msg::Inspector>>(
+                  rclcpp::PublisherOptionsWithAllocator<std::allocator<void>>()),
+              rclcpp::QoS(0)));
 
   node_topics->add_publisher(inspector_publisher_, nullptr);
 }
 
 bool Inspector::is_enabled() {
-  char *value = std::getenv(env_var_enable_);
+  char* value = std::getenv(env_var_enable_);
   if (value == nullptr) {
     return false;
   }
@@ -89,7 +90,7 @@ bool Inspector::is_enabled() {
 }
 
 double Inspector::get_period() {
-  char *value = std::getenv(env_var_period_);
+  char* value = std::getenv(env_var_period_);
   if (value == nullptr) {
     return 0;
   }

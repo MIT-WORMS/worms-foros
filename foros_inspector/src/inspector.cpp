@@ -17,10 +17,10 @@
 #include "inspector.hpp"
 
 #include <ncurses.h>
-#include <rclcpp/rclcpp.hpp>
 
 #include <functional>
 #include <memory>
+#include <rclcpp/rclcpp.hpp>
 #include <sstream>
 #include <string>
 
@@ -30,13 +30,13 @@ namespace akit {
 namespace failover {
 namespace foros_inspector {
 
-const char *Inspector::kNodeName = "foros_inspector";
+const char* Inspector::kNodeName = "foros_inspector";
 
 Inspector::Inspector() : rclcpp::Node(kNodeName), period_(get_period()) {
   subscriber_ = create_subscription<foros_msgs::msg::Inspector>(
-      foros_msgs::msg::Inspector::TOPIC_NAME, 10,
-      std::bind(&Inspector::inspector_message_received, this,
-                std::placeholders::_1));
+      foros_msgs::msg::Inspector::TOPIC_NAME,
+      10,
+      std::bind(&Inspector::inspector_message_received, this, std::placeholders::_1));
   intialize_screen();
   initialize_refresh_timer();
 }
@@ -44,9 +44,10 @@ Inspector::Inspector() : rclcpp::Node(kNodeName), period_(get_period()) {
 Inspector::~Inspector() { terminate_screen(); }
 
 void Inspector::initialize_refresh_timer() {
-  refresh_timer_ = rclcpp::create_timer(this, rclcpp::Clock::make_shared(),
-                                        std::chrono::milliseconds(1000),
-                                        [&]() { update_screen(); });
+  refresh_timer_ = rclcpp::create_timer(
+      this, rclcpp::Clock::make_shared(), std::chrono::milliseconds(1000), [&]() {
+        update_screen();
+      });
 }
 
 void Inspector::reset_refresh_timer() {
@@ -58,13 +59,10 @@ void Inspector::intialize_screen() {
   initscr();
   curs_set(0);
   start_color();
-  init_pair(static_cast<uint8_t>(Colors::kGreenOnBlack), COLOR_GREEN,
-            COLOR_BLACK);
+  init_pair(static_cast<uint8_t>(Colors::kGreenOnBlack), COLOR_GREEN, COLOR_BLACK);
   init_pair(static_cast<uint8_t>(Colors::kRedOnBlack), COLOR_RED, COLOR_BLACK);
-  init_pair(static_cast<uint8_t>(Colors::kCyanOnBlack), COLOR_CYAN,
-            COLOR_BLACK);
-  init_pair(static_cast<uint8_t>(Colors::kYellowOnBlack), COLOR_YELLOW,
-            COLOR_BLACK);
+  init_pair(static_cast<uint8_t>(Colors::kCyanOnBlack), COLOR_CYAN, COLOR_BLACK);
+  init_pair(static_cast<uint8_t>(Colors::kYellowOnBlack), COLOR_YELLOW, COLOR_BLACK);
   window_ = newpad(1000u, 1000u);
   keypad(window_, TRUE);
   nodelay(window_, TRUE);
@@ -83,7 +81,7 @@ void Inspector::update_screen() {
   add_title("FOROS INSPECTOR");
   add_summary();
   add_newline();
-  for (auto &iter : clusters_) {
+  for (auto& iter : clusters_) {
     add_newline();
     add_details(iter.second);
   }
@@ -104,10 +102,11 @@ void Inspector::add_summary() {
   add_separater();
   add_string("Updated Time", large_column_);
   add_newline();
-  add_string(divider_, name_column_ + large_column_ * 2 + medium_column_ +
-                           small_column_ * 2 + 10);
+  add_string(
+      divider_,
+      name_column_ + large_column_ * 2 + medium_column_ + small_column_ * 2 + 10);
   add_newline();
-  for (auto &cluster : clusters_) {
+  for (auto& cluster : clusters_) {
     add_cluster_item(cluster.second);
   }
 }
@@ -125,7 +124,7 @@ void Inspector::add_cluster_item(std::shared_ptr<ClusterInfo> cluster) {
   add_separater();
 
   std::string active;
-  for (auto &node : cluster->nodes_) {
+  for (auto& node : cluster->nodes_) {
     if (!active.empty()) {
       active += ", ";
     }
@@ -165,11 +164,10 @@ void Inspector::add_details(std::shared_ptr<ClusterInfo> cluster) {
   add_separater();
   add_string("Updated Time", large_column_);
   add_newline();
-  add_string(divider_,
-             large_column_ * 1 + medium_column_ * 4 + small_column_ * 2 + 12);
+  add_string(divider_, large_column_ * 1 + medium_column_ * 4 + small_column_ * 2 + 12);
   add_newline();
 
-  for (auto &node : cluster->nodes_) {
+  for (auto& node : cluster->nodes_) {
     add_node_item(node.second);
   }
 }
@@ -214,30 +212,29 @@ void Inspector::add_state_name(const uint8_t state) {
   }
 }
 
-void Inspector::add_title(const std::string &str) {
+void Inspector::add_title(const std::string& str) {
   wattron(window_, A_BOLD | A_ITALIC);
   wprintw(window_, "%s\n\n", str.c_str());
   wattroff(window_, A_BOLD | A_ITALIC);
 }
 
-void Inspector::add_subtitle(const std::string &str) {
+void Inspector::add_subtitle(const std::string& str) {
   wattron(window_, A_BOLD | A_UNDERLINE);
   wprintw(window_, "%s\n\n", str.c_str());
   wattroff(window_, A_BOLD | A_UNDERLINE);
 }
 
-void Inspector::add_string(const char *str, const uint32_t size) {
+void Inspector::add_string(const char* str, const uint32_t size) {
   wprintw(window_, "%*.*s", size, size, str);
 }
 
-void Inspector::add_string(const char *str, const uint32_t size, Colors color) {
+void Inspector::add_string(const char* str, const uint32_t size, Colors color) {
   wattron(window_, COLOR_PAIR(static_cast<uint8_t>(color)));
   wprintw(window_, "%*.*s", size, size, str);
   wattroff(window_, COLOR_PAIR(static_cast<uint8_t>(color)));
 }
 
-void Inspector::add_bold_string(const char *str, const uint32_t size,
-                                Colors color) {
+void Inspector::add_bold_string(const char* str, const uint32_t size, Colors color) {
   wattron(window_, A_BOLD | COLOR_PAIR(static_cast<uint8_t>(color)));
   wprintw(window_, "%*.*s", size, size, str);
   wattroff(window_, A_BOLD | COLOR_PAIR(static_cast<uint8_t>(color)));
@@ -252,7 +249,7 @@ void Inspector::add_number(const uint64_t num, const uint32_t size) {
 
 void Inspector::add_separater() { wprintw(window_, " |"); }
 
-void Inspector::add_error(const char *str, const uint32_t size) {
+void Inspector::add_error(const char* str, const uint32_t size) {
   wattron(window_, COLOR_PAIR(static_cast<uint8_t>(Colors::kRedOnBlack)));
   wprintw(window_, "%*.*s", size, size, str);
   wattroff(window_, COLOR_PAIR(static_cast<uint8_t>(Colors::kRedOnBlack)));
@@ -269,8 +266,7 @@ bool Inspector::is_outdated(rclcpp::Time time) {
   return true;
 }
 
-std::shared_ptr<ClusterInfo> Inspector::get_cluster_info(
-    const std::string &name) {
+std::shared_ptr<ClusterInfo> Inspector::get_cluster_info(const std::string& name) {
   std::shared_ptr<ClusterInfo> cluster;
   auto iter = clusters_.find(name);
   if (iter == clusters_.end() || is_outdated(iter->second->last_updated_)) {
@@ -304,8 +300,7 @@ std::shared_ptr<NodeInfo> Inspector::get_node_info(
 
 void Inspector::update_cluster_info() {
   name_column_ = large_column_;
-  for (auto cluster_iter = clusters_.begin();
-       cluster_iter != clusters_.end();) {
+  for (auto cluster_iter = clusters_.begin(); cluster_iter != clusters_.end();) {
     auto cluster = cluster_iter->second;
     cluster->size_mismatched_ = false;
     if (is_outdated(cluster->last_updated_)) {
@@ -385,7 +380,7 @@ void Inspector::inspector_message_received(
 }
 
 double Inspector::get_period() {
-  char *value = std::getenv(env_var_period_);
+  char* value = std::getenv(env_var_period_);
   if (value == nullptr) {
     return default_period_;
   }

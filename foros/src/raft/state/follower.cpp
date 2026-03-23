@@ -16,12 +16,11 @@
 
 #include "raft/state/follower.hpp"
 
-#include <rclcpp/duration.hpp>
-#include <rclcpp/timer.hpp>
-
 #include <chrono>
 #include <functional>
 #include <iostream>
+#include <rclcpp/duration.hpp>
+#include <rclcpp/timer.hpp>
 #include <tuple>
 
 #include "raft/event.hpp"

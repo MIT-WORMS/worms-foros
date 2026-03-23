@@ -17,6 +17,10 @@
 #ifndef AKIT_FAILOVER_FOROS_CLUSTER_NODE_IMPL_HPP_
 #define AKIT_FAILOVER_FOROS_CLUSTER_NODE_IMPL_HPP_
 
+#include <functional>
+#include <list>
+#include <map>
+#include <memory>
 #include <rclcpp/logger.hpp>
 #include <rclcpp/node_interfaces/node_base_interface.hpp>
 #include <rclcpp/node_interfaces/node_clock_interface.hpp>
@@ -25,11 +29,6 @@
 #include <rclcpp/node_interfaces/node_services_interface.hpp>
 #include <rclcpp/node_interfaces/node_timers_interface.hpp>
 #include <rclcpp/node_options.hpp>
-
-#include <functional>
-#include <list>
-#include <map>
-#include <memory>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -50,8 +49,9 @@ class ClusterNodeImpl final : Observer<lifecycle::StateType>,
                               Observer<raft::StateType> {
  public:
   explicit ClusterNodeImpl(
-      const std::string &cluster_name, const uint32_t node_id,
-      const std::vector<uint32_t> &cluster_node_ids,
+      const std::string& cluster_name,
+      const uint32_t node_id,
+      const std::vector<uint32_t>& cluster_node_ids,
       rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
       rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph,
       rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging,
@@ -59,18 +59,18 @@ class ClusterNodeImpl final : Observer<lifecycle::StateType>,
       rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics,
       rclcpp::node_interfaces::NodeTimersInterface::SharedPtr node_timers,
       rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
-      const ClusterNodeOptions &options);
+      const ClusterNodeOptions& options);
 
   ~ClusterNodeImpl();
 
-  void handle(const lifecycle::StateType &state) override;
-  void handle(const raft::StateType &state) override;
+  void handle(const lifecycle::StateType& state) override;
+  void handle(const raft::StateType& state) override;
   bool is_activated();
   void register_on_activated(std::function<void()> callback);
   void register_on_deactivated(std::function<void()> callback);
   void register_on_standby(std::function<void()> callback);
   CommandCommitResponseSharedFuture commit_command(
-      Command::SharedPtr command, CommandCommitResponseCallback &callback);
+      Command::SharedPtr command, CommandCommitResponseCallback& callback);
   uint64_t get_commands_size();
   Command::SharedPtr get_command(uint64_t id);
   void register_on_committed(

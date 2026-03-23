@@ -29,10 +29,11 @@ namespace raft {
 
 class PendingCommit {
  public:
-  PendingCommit(LogEntry::SharedPtr log,
-                CommandCommitResponseSharedPromise promise,
-                CommandCommitResponseSharedFuture future,
-                CommandCommitResponseCallback callback)
+  PendingCommit(
+      LogEntry::SharedPtr log,
+      CommandCommitResponseSharedPromise promise,
+      CommandCommitResponseSharedFuture future,
+      CommandCommitResponseCallback callback)
       : log_(log), promise_(promise), future_(future), callback_(callback) {}
 
   const LogEntry::SharedPtr log_;

@@ -35,7 +35,7 @@ unsigned int ClusterNodeOptions::election_timeout_min() const {
   return election_timeout_min_;
 }
 
-ClusterNodeOptions &ClusterNodeOptions::election_timeout_min(unsigned int min) {
+ClusterNodeOptions& ClusterNodeOptions::election_timeout_min(unsigned int min) {
   election_timeout_min_ = min;
   return *this;
 }
@@ -44,16 +44,14 @@ unsigned int ClusterNodeOptions::election_timeout_max() const {
   return election_timeout_max_;
 }
 
-ClusterNodeOptions &ClusterNodeOptions::election_timeout_max(unsigned int max) {
+ClusterNodeOptions& ClusterNodeOptions::election_timeout_max(unsigned int max) {
   election_timeout_max_ = max;
   return *this;
 }
 
-std::string ClusterNodeOptions::temp_directory() const {
-  return temp_directory_;
-}
+std::string ClusterNodeOptions::temp_directory() const { return temp_directory_; }
 
-ClusterNodeOptions &ClusterNodeOptions::temp_directory(std::string &directory) {
+ClusterNodeOptions& ClusterNodeOptions::temp_directory(std::string& directory) {
   temp_directory_ = directory;
   return *this;
 }

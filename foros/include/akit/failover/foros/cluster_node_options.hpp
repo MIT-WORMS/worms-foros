@@ -18,7 +18,6 @@
 #define AKIT_FAILOVER_FOROS_CLUSTER_NODE_OPTIONS_HPP_
 
 #include <rclcpp/node_options.hpp>
-
 #include <string>
 
 #include "akit/failover/foros/common.hpp"
@@ -61,8 +60,7 @@ class ClusterNodeOptions : public rclcpp::NodeOptions {
    *   ClusterNodeOptions.
    */
   CLUSTER_NODE_PUBLIC
-  explicit ClusterNodeOptions(
-      rcl_allocator_t allocator = rcl_get_default_allocator());
+  explicit ClusterNodeOptions(rcl_allocator_t allocator = rcl_get_default_allocator());
 
   CLUSTER_NODE_PUBLIC
   virtual ~ClusterNodeOptions() = default;
@@ -80,7 +78,7 @@ class ClusterNodeOptions : public rclcpp::NodeOptions {
    * \return The reference of this instance
    */
   CLUSTER_NODE_PUBLIC
-  ClusterNodeOptions &election_timeout_min(unsigned int min);
+  ClusterNodeOptions& election_timeout_min(unsigned int min);
 
   /// Return the maximum value of election timeout.
   /**
@@ -95,7 +93,7 @@ class ClusterNodeOptions : public rclcpp::NodeOptions {
    * \return The reference of this instance.
    */
   CLUSTER_NODE_PUBLIC
-  ClusterNodeOptions &election_timeout_max(unsigned int max);
+  ClusterNodeOptions& election_timeout_max(unsigned int max);
 
   /// Return the temp directory. the files in the temp directory must be cleared
   /// every boot. ex) /tmp in linux.
@@ -108,7 +106,7 @@ class ClusterNodeOptions : public rclcpp::NodeOptions {
    * \return The reference of this instance.
    */
   CLUSTER_NODE_PUBLIC
-  ClusterNodeOptions &temp_directory(std::string &directory);
+  ClusterNodeOptions& temp_directory(std::string& directory);
 
  private:
   unsigned int election_timeout_min_;

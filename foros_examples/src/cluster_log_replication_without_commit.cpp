@@ -27,7 +27,7 @@
 
 using namespace std::chrono_literals;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   try {
     const std::string kClusterName = "test_cluster_log";
 
@@ -62,17 +62,14 @@ int main(int argc, char **argv) {
         kClusterName, id, cluster_node_ids, options);
 
     node->register_on_activated([&]() { RCLCPP_INFO(logger, "activated"); });
-    node->register_on_deactivated(
-        [&]() { RCLCPP_INFO(logger, "deactivated"); });
+    node->register_on_deactivated([&]() { RCLCPP_INFO(logger, "deactivated"); });
     node->register_on_standby([&]() { RCLCPP_INFO(logger, "standby"); });
     node->register_on_committed(
         [&](int64_t id, akit::failover::foros::Command::SharedPtr command) {
-          RCLCPP_INFO(logger, "command commited : %ld, %c", id,
-                      command->data()[0]);
+          RCLCPP_INFO(logger, "command commited : %ld, %c", id, command->data()[0]);
         });
-    node->register_on_reverted([&](int64_t id) {
-      RCLCPP_INFO(logger, "command reverted until : %ld", id);
-    });
+    node->register_on_reverted(
+        [&](int64_t id) { RCLCPP_INFO(logger, "command reverted until : %ld", id); });
 
     rclcpp::spin(node->get_node_base_interface());
     rclcpp::shutdown();

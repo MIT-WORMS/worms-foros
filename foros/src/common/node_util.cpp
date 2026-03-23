@@ -22,19 +22,20 @@ namespace akit {
 namespace failover {
 namespace foros {
 
-std::string NodeUtil::get_node_name(const std::string &cluster_name,
-                                    const uint32_t node_id) {
+std::string NodeUtil::get_node_name(
+    const std::string& cluster_name, const uint32_t node_id) {
   return cluster_name + std::to_string(node_id);
 }
 
-std::string NodeUtil::get_service_name(const std::string &cluster_name,
-                                       const uint32_t node_id,
-                                       const std::string &service_name) {
+std::string NodeUtil::get_service_name(
+    const std::string& cluster_name,
+    const uint32_t node_id,
+    const std::string& service_name) {
   return get_node_name(cluster_name, node_id) + service_name;
 }
 
-const char *NodeUtil::kAppendEntriesServiceName = "/append_entries";
-const char *NodeUtil::kRequestVoteServiceName = "/request_vote";
+const char* NodeUtil::kAppendEntriesServiceName = "/append_entries";
+const char* NodeUtil::kRequestVoteServiceName = "/request_vote";
 
 }  // namespace foros
 }  // namespace failover

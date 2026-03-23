@@ -16,11 +16,10 @@
 
 #include "lifecycle/state.hpp"
 
-#include <rclcpp/logging.hpp>
-
 #include <iostream>
 #include <map>
 #include <memory>
+#include <rclcpp/logging.hpp>
 
 #include "common/observable.hpp"
 
@@ -29,17 +28,17 @@ namespace failover {
 namespace foros {
 namespace lifecycle {
 
-State::State(StateType type, std::map<Event, StateType> transition_map,
-             rclcpp::Logger &logger)
+State::State(
+    StateType type, std::map<Event, StateType> transition_map, rclcpp::Logger& logger)
     : type_(type),
       transition_map_(transition_map),
       logger_(logger.get_child("lifecycle")) {}
 
 StateType State::get_type() { return type_; }
 
-void State::emit(const Event &event) { event_source_->notify(event); }
+void State::emit(const Event& event) { event_source_->notify(event); }
 
-StateType State::handle(const Event &event) {
+StateType State::handle(const Event& event) {
   if (transition_map_.count(event) < 1) {
     return StateType::kUnknown;
   }
@@ -62,8 +61,7 @@ StateType State::handle(const Event &event) {
   return transition_map_[event];
 }
 
-void State::set_event_notifier(
-    std::shared_ptr<Observable<Event>> event_source) {
+void State::set_event_notifier(std::shared_ptr<Observable<Event>> event_source) {
   set_event_source(event_source);
 }
 

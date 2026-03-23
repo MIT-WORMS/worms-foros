@@ -32,8 +32,8 @@ namespace common {
 template <typename State, typename StateType, typename Event>
 class StateMachine : public Observer<Event> {
  public:
-  StateMachine(StateType current_state,
-               std::map<StateType, std::shared_ptr<State>> states)
+  StateMachine(
+      StateType current_state, std::map<StateType, std::shared_ptr<State>> states)
       : states_(states), current_state_(current_state) {
     // create event source and attach it to states
     event_notifier_ = std::make_shared<Observable<Event>>();
@@ -49,7 +49,7 @@ class StateMachine : public Observer<Event> {
 
   StateType get_current_state_type() { return current_state_; }
 
-  void handle(const Event &event) override {
+  void handle(const Event& event) override {
     std::lock_guard<std::recursive_mutex> lock(state_mutex_);
     auto next_state = states_[current_state_]->handle(event);
     if (states_.count(next_state) < 1) {
@@ -62,11 +62,11 @@ class StateMachine : public Observer<Event> {
     states_[current_state_]->entry();
   }
 
-  void subscribe(Observer<StateType> *observer) {
+  void subscribe(Observer<StateType>* observer) {
     current_state_notifier_.subscribe(observer);
   }
 
-  void unsubscribe(Observer<StateType> *observer) {
+  void unsubscribe(Observer<StateType>* observer) {
     current_state_notifier_.unsubscribe(observer);
   }
 

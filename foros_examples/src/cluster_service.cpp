@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-#include <rclcpp/rclcpp.hpp>
-#include <std_srvs/srv/trigger.hpp>
-
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <rclcpp/rclcpp.hpp>
+#include <std_srvs/srv/trigger.hpp>
 #include <string>
 #include <vector>
 
@@ -27,7 +26,7 @@
 #include "akit/failover/foros/cluster_node_options.hpp"
 #include "akit/failover/foros/cluster_node_service.hpp"
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   try {
     const std::string kClusterName = "test_cluster_service";
     const std::string kServiceName = "test_cluster_get_leader_name";
@@ -59,8 +58,7 @@ int main(int argc, char **argv) {
         kClusterName, id, cluster_node_ids);
 
     node->register_on_activated([&]() { RCLCPP_INFO(logger, "activated"); });
-    node->register_on_deactivated(
-        [&]() { RCLCPP_INFO(logger, "deactivated"); });
+    node->register_on_deactivated([&]() { RCLCPP_INFO(logger, "deactivated"); });
     node->register_on_standby([&]() { RCLCPP_INFO(logger, "standby"); });
 
     auto service = node->create_service<std_srvs::srv::Trigger>(

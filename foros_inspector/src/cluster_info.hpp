@@ -17,10 +17,9 @@
 #ifndef AKIT_FAILOVER_FOROS_INSPECTOR_CLUSTER_INFO_HPP_
 #define AKIT_FAILOVER_FOROS_INSPECTOR_CLUSTER_INFO_HPP_
 
-#include <rclcpp/rclcpp.hpp>
-
 #include <map>
 #include <memory>
+#include <rclcpp/rclcpp.hpp>
 #include <string>
 
 #include "node_info.hpp"

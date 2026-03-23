@@ -30,11 +30,12 @@ namespace lifecycle {
 
 class Active final : public State {
  public:
-  explicit Active(rclcpp::Logger &logger)
-      : State(StateType::kActive,
-              {{Event::kStandby, StateType::kStandby},
-               {Event::kDeactivate, StateType::kInactive}},
-              logger) {}
+  explicit Active(rclcpp::Logger& logger)
+      : State(
+            StateType::kActive,
+            {{Event::kStandby, StateType::kStandby},
+             {Event::kDeactivate, StateType::kInactive}},
+            logger) {}
 
   void on_activated() override;
   void on_deactivated() override;

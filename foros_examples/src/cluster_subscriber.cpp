@@ -16,12 +16,11 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
-
 #include <string>
 
 using namespace std::chrono_literals;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   try {
     const std::string kNodeName = "test_cluster_subscriber";
     const std::string kTopicName = "test_cluster_echo";

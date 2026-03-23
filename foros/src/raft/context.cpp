@@ -17,7 +17,6 @@
 #include "raft/context.hpp"
 
 #include <foros_msgs/srv/request_vote.hpp>
-
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -37,7 +36,8 @@ namespace foros {
 namespace raft {
 
 Context::Context(
-    const std::string &cluster_name, const uint32_t node_id,
+    const std::string& cluster_name,
+    const uint32_t node_id,
     rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
     rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph,
     rclcpp::node_interfaces::NodeServicesInterface::SharedPtr node_services,
@@ -45,8 +45,9 @@ Context::Context(
     rclcpp::node_interfaces::NodeTimersInterface::SharedPtr node_timers,
     rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
     const unsigned int election_timeout_min,
-    const unsigned int election_timeout_max, const std::string &temp_directory,
-    rclcpp::Logger &logger)
+    const unsigned int election_timeout_max,
+    const std::string& temp_directory,
+    rclcpp::Logger& logger)
     : cluster_name_(cluster_name),
       node_id_(node_id),
       node_base_(node_base),
@@ -66,13 +67,16 @@ Context::Context(
   auto db_file = temp_directory + "/foros_" + node_base_->get_name();
   store_ = std::make_unique<ContextStore>(db_file, logger_);
   inspector_ = std::make_unique<Inspector>(
-      node_base, node_topics, node_timers, node_clock,
-      std::bind(&Context::inspector_message_requested, this,
-                std::placeholders::_1));
+      node_base,
+      node_topics,
+      node_timers,
+      node_clock,
+      std::bind(&Context::inspector_message_requested, this, std::placeholders::_1));
 }
 
-void Context::initialize(const std::vector<uint32_t> &cluster_node_ids,
-                         StateMachineInterface *state_machine_interface) {
+void Context::initialize(
+    const std::vector<uint32_t>& cluster_node_ids,
+    StateMachineInterface* state_machine_interface) {
   initialize_node();
   set_cluster_size(cluster_node_ids.size());
   initialize_other_nodes(cluster_node_ids);
@@ -83,38 +87,43 @@ void Context::initialize_node() {
   rcl_service_options_t options = rcl_service_get_default_options();
 
   append_entries_callback_.set(std::bind(
-      &Context::on_append_entries_requested, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3));
+      &Context::on_append_entries_requested,
+      this,
+      std::placeholders::_1,
+      std::placeholders::_2,
+      std::placeholders::_3));
 
   append_entries_service_ =
       std::make_shared<rclcpp::Service<foros_msgs::srv::AppendEntries>>(
           node_base_->get_shared_rcl_node_handle(),
-          NodeUtil::get_service_name(cluster_name_, node_id_,
-                                     NodeUtil::kAppendEntriesServiceName),
-          append_entries_callback_, options);
+          NodeUtil::get_service_name(
+              cluster_name_, node_id_, NodeUtil::kAppendEntriesServiceName),
+          append_entries_callback_,
+          options);
 
   node_services_->add_service(
-      std::dynamic_pointer_cast<rclcpp::ServiceBase>(append_entries_service_),
-      nullptr);
+      std::dynamic_pointer_cast<rclcpp::ServiceBase>(append_entries_service_), nullptr);
 
   request_vote_callback_.set(std::bind(
-      &Context::on_request_vote_requested, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3));
+      &Context::on_request_vote_requested,
+      this,
+      std::placeholders::_1,
+      std::placeholders::_2,
+      std::placeholders::_3));
 
   request_vote_service_ =
       std::make_shared<rclcpp::Service<foros_msgs::srv::RequestVote>>(
           node_base_->get_shared_rcl_node_handle(),
-          NodeUtil::get_service_name(cluster_name_, node_id_,
-                                     NodeUtil::kRequestVoteServiceName),
-          request_vote_callback_, options);
+          NodeUtil::get_service_name(
+              cluster_name_, node_id_, NodeUtil::kRequestVoteServiceName),
+          request_vote_callback_,
+          options);
 
   node_services_->add_service(
-      std::dynamic_pointer_cast<rclcpp::ServiceBase>(request_vote_service_),
-      nullptr);
+      std::dynamic_pointer_cast<rclcpp::ServiceBase>(request_vote_service_), nullptr);
 }
 
-void Context::initialize_other_nodes(
-    const std::vector<uint32_t> &cluster_node_ids) {
+void Context::initialize_other_nodes(const std::vector<uint32_t>& cluster_node_ids) {
   rcl_client_options_t options = rcl_client_get_default_options();
   options.qos = rmw_qos_profile_services_default;
 
@@ -126,7 +135,12 @@ void Context::initialize_other_nodes(
     }
 
     other_nodes_[id] = std::make_shared<OtherNode>(
-        node_base_, node_graph_, node_services_, cluster_name_, id, next_index,
+        node_base_,
+        node_graph_,
+        node_services_,
+        cluster_name_,
+        id,
+        next_index,
         std::bind(&Context::on_log_get_request, this, std::placeholders::_1));
   }
 }
@@ -137,7 +151,7 @@ void Context::set_cluster_size(uint32_t size) {
 }
 
 void Context::set_state_machine_interface(
-    StateMachineInterface *state_machine_interface) {
+    StateMachineInterface* state_machine_interface) {
   state_machine_interface_ = state_machine_interface;
 }
 
@@ -215,8 +229,8 @@ bool Context::request_local_commit(
     }
   }
 
-  log = LogEntry::make_shared(request->leader_commit, request->term,
-                              Command::make_shared(request->entries));
+  log = LogEntry::make_shared(
+      request->leader_commit, request->term, Command::make_shared(request->entries));
 
   if (store_->push_log(log) == false) {
     return false;
@@ -240,9 +254,11 @@ void Context::on_request_vote_requested(
   }
 
   update_term(request->term);
-  std::tie(response->term, response->vote_granted) =
-      vote(request->term, request->candidate_id, request->last_data_index,
-           request->loat_data_term);
+  std::tie(response->term, response->vote_granted) = vote(
+      request->term,
+      request->candidate_id,
+      request->last_data_index,
+      request->loat_data_term);
 }
 
 void Context::start_election_timer() {
@@ -251,12 +267,12 @@ void Context::start_election_timer() {
     election_timer_.reset();
   }
 
-  std::uniform_int_distribution<> dist(election_timeout_min_,
-                                       election_timeout_max_);
+  std::uniform_int_distribution<> dist(election_timeout_min_, election_timeout_max_);
   auto period = dist(random_generator_);
 
   election_timer_ = rclcpp::GenericTimer<rclcpp::VoidCallbackType>::make_shared(
-      node_clock_->get_clock(), std::chrono::milliseconds(period),
+      node_clock_->get_clock(),
+      std::chrono::milliseconds(period),
       [this]() {
         if (broadcast_received_ == true) {
           broadcast_received_ = false;
@@ -286,12 +302,11 @@ void Context::start_broadcast_timer() {
     broadcast_timer_.reset();
   }
 
-  broadcast_timer_ =
-      rclcpp::GenericTimer<rclcpp::VoidCallbackType>::make_shared(
-          node_clock_->get_clock(),
-          std::chrono::milliseconds(broadcast_timeout_),
-          [this]() { state_machine_interface_->on_broadcast_timedout(); },
-          node_base_->get_context());
+  broadcast_timer_ = rclcpp::GenericTimer<rclcpp::VoidCallbackType>::make_shared(
+      node_clock_->get_clock(),
+      std::chrono::milliseconds(broadcast_timeout_),
+      [this]() { state_machine_interface_->on_broadcast_timedout(); },
+      node_base_->get_context());
   node_timers_->add_timer(broadcast_timer_, nullptr);
 }
 
@@ -313,16 +328,17 @@ void Context::vote_for_me() {
   store_->increase_vote_received();
 }
 
-std::tuple<uint64_t, bool> Context::vote(const uint64_t term, const uint32_t id,
-                                         const uint64_t last_data_index,
-                                         const uint64_t) {
+std::tuple<uint64_t, bool> Context::vote(
+    const uint64_t term,
+    const uint32_t id,
+    const uint64_t last_data_index,
+    const uint64_t) {
   bool granted = false;
   auto log = store_->log();
   auto current_term = store_->current_term();
 
   if (term >= current_term) {
-    if (store_->voted() == false &&
-        (log == nullptr || log->id_ <= last_data_index)) {
+    if (store_->voted() == false && (log == nullptr || log->id_ <= last_data_index)) {
       store_->voted_for(id);
       store_->voted(true);
       granted = true;
@@ -354,27 +370,37 @@ void Context::broadcast() {
     log = store_->log();
   }
 
-  for (auto &node : other_nodes_) {
+  for (auto& node : other_nodes_) {
     node.second->broadcast(
-        store_->current_term(), node_id_, log,
-        std::bind(&Context::on_broadcast_response, this, std::placeholders::_1,
-                  std::placeholders::_2, std::placeholders::_3,
-                  std::placeholders::_4));
+        store_->current_term(),
+        node_id_,
+        log,
+        std::bind(
+            &Context::on_broadcast_response,
+            this,
+            std::placeholders::_1,
+            std::placeholders::_2,
+            std::placeholders::_3,
+            std::placeholders::_4));
   }
 }
 
 void Context::request_vote() {
-  for (auto &node : other_nodes_) {
+  for (auto& node : other_nodes_) {
     node.second->request_vote(
-        store_->current_term(), node_id_, store_->log(),
-        std::bind(&Context::on_request_vote_response, this,
-                  std::placeholders::_1, std::placeholders::_2));
+        store_->current_term(),
+        node_id_,
+        store_->log(),
+        std::bind(
+            &Context::on_request_vote_response,
+            this,
+            std::placeholders::_1,
+            std::placeholders::_2));
   }
   check_elected();
 }
 
-void Context::on_request_vote_response(const uint64_t term,
-                                       const bool vote_granted) {
+void Context::on_request_vote_response(const uint64_t term, const bool vote_granted) {
   if (term < store_->current_term()) {
     // ignore vote response since term is outdated
     return;
@@ -405,7 +431,7 @@ void Context::check_elected() {
     id = log->id_;
   }
 
-  for (auto &node : other_nodes_) {
+  for (auto& node : other_nodes_) {
     node.second->update_match_index(id);
   }
 
@@ -414,15 +440,16 @@ void Context::check_elected() {
 
 CommandCommitResponseSharedFuture Context::complete_commit(
     CommandCommitResponseSharedPromise promise,
-    CommandCommitResponseSharedFuture future, LogEntry::SharedPtr log,
-    bool result, CommandCommitResponseCallback callback) {
+    CommandCommitResponseSharedFuture future,
+    LogEntry::SharedPtr log,
+    bool result,
+    CommandCommitResponseCallback callback) {
   if (result == true) {
     store_->push_log(log);
     invoke_commit_callback(log);
   }
 
-  auto response =
-      CommandCommitResponse::make_shared(log->id_, log->command_, result);
+  auto response = CommandCommitResponse::make_shared(log->id_, log->command_, result);
   promise->set_value(response);
   if (callback != nullptr) {
     callback(future);
@@ -432,7 +459,8 @@ CommandCommitResponseSharedFuture Context::complete_commit(
 
 CommandCommitResponseSharedFuture Context::cancel_commit(
     CommandCommitResponseSharedPromise promise,
-    CommandCommitResponseSharedFuture future, uint64_t id,
+    CommandCommitResponseSharedFuture future,
+    uint64_t id,
     CommandCommitResponseCallback callback) {
   auto response = CommandCommitResponse::make_shared(id, nullptr, false);
   promise->set_value(response);
@@ -446,15 +474,13 @@ CommandCommitResponseSharedFuture Context::commit_command(
     Command::SharedPtr command, CommandCommitResponseCallback callback) {
   CommandCommitResponseSharedPromise commit_promise =
       std::make_shared<CommandCommitResponsePromise>();
-  CommandCommitResponseSharedFuture commit_future =
-      commit_promise->get_future();
+  CommandCommitResponseSharedFuture commit_future = commit_promise->get_future();
   if (state_machine_interface_->is_leader() == false) {
-    return cancel_commit(commit_promise, commit_future, store_->logs_size(),
-                         callback);
+    return cancel_commit(commit_promise, commit_future, store_->logs_size(), callback);
   }
 
-  auto log = LogEntry::make_shared(store_->logs_size(), store_->current_term(),
-                                   command);
+  auto log =
+      LogEntry::make_shared(store_->logs_size(), store_->current_term(), command);
 
   if (cluster_size_ <= 1) {
     return complete_commit(commit_promise, commit_future, log, true, callback);
@@ -503,8 +529,8 @@ bool Context::set_pending_commit(std::shared_ptr<PendingCommit> commit) {
 void Context::cancel_pending_commit() {
   auto commit = clear_pending_commit();
   if (commit != nullptr && commit->log_ != nullptr) {
-    complete_commit(commit->promise_, commit->future_, commit->log_, false,
-                    commit->callback_);
+    complete_commit(
+        commit->promise_, commit->future_, commit->log_, false, commit->callback_);
   }
 }
 
@@ -518,10 +544,11 @@ std::shared_ptr<PendingCommit> Context::clear_pending_commit() {
   return commit;
 }
 
-void Context::handle_pending_commit_response(const uint32_t id,
-                                             const uint64_t commit_index,
-                                             const uint64_t term,
-                                             const bool success) {
+void Context::handle_pending_commit_response(
+    const uint32_t id,
+    const uint64_t commit_index,
+    const uint64_t term,
+    const bool success) {
   std::shared_ptr<PendingCommit> commit;
   bool result = false;
 
@@ -536,7 +563,7 @@ void Context::handle_pending_commit_response(const uint32_t id,
 
     unsigned int received_count = 1;
     unsigned int success_count = 1;
-    for (auto &node : other_nodes_) {
+    for (auto& node : other_nodes_) {
       if (commit->result_map_.count(node.first) > 0) {
         received_count++;
         if (commit->result_map_[node.first] == success) {
@@ -553,13 +580,15 @@ void Context::handle_pending_commit_response(const uint32_t id,
     pending_commit_ = nullptr;
   }
 
-  complete_commit(commit->promise_, commit->future_, commit->log_, result,
-                  commit->callback_);
+  complete_commit(
+      commit->promise_, commit->future_, commit->log_, result, commit->callback_);
 }
 
-void Context::on_broadcast_response(const uint32_t id,
-                                    const uint64_t commit_index,
-                                    const uint64_t term, const bool success) {
+void Context::on_broadcast_response(
+    const uint32_t id,
+    const uint64_t commit_index,
+    const uint64_t term,
+    const bool success) {
   if (term >= store_->current_term()) {
     update_term(term);
   }
@@ -623,8 +652,7 @@ void Context::invoke_revert_callback(uint64_t id) {
   }
 }
 
-void Context::inspector_message_requested(
-    foros_msgs::msg::Inspector::SharedPtr msg) {
+void Context::inspector_message_requested(foros_msgs::msg::Inspector::SharedPtr msg) {
   msg->stamp = node_clock_->get_clock()->now();
   msg->cluster_name = cluster_name_;
   msg->cluster_size = cluster_size_;

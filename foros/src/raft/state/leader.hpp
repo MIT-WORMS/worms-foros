@@ -31,13 +31,15 @@ namespace raft {
 
 class Leader final : public State {
  public:
-  explicit Leader(std::shared_ptr<Context> context, rclcpp::Logger &logger)
-      : State(StateType::kLeader,
-              {{Event::kTerminated, StateType::kStandby},
-               {Event::kLeaderDiscovered, StateType::kFollower},
-               {Event::kNewTermReceived, StateType::kFollower},
-               {Event::kBroadcastTimedout, StateType::kStay}},
-              context, logger) {}
+  explicit Leader(std::shared_ptr<Context> context, rclcpp::Logger& logger)
+      : State(
+            StateType::kLeader,
+            {{Event::kTerminated, StateType::kStandby},
+             {Event::kLeaderDiscovered, StateType::kFollower},
+             {Event::kNewTermReceived, StateType::kFollower},
+             {Event::kBroadcastTimedout, StateType::kStay}},
+            context,
+            logger) {}
 
   void on_started() override;
   void on_timedout() override;

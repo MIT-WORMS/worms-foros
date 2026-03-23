@@ -17,9 +17,8 @@
 #ifndef AKIT_FAILOVER_FOROS_RAFT_STATE_FOLLOWER_HPP_
 #define AKIT_FAILOVER_FOROS_RAFT_STATE_FOLLOWER_HPP_
 
-#include <rclcpp/timer.hpp>
-
 #include <memory>
+#include <rclcpp/timer.hpp>
 #include <tuple>
 #include <utility>
 
@@ -34,11 +33,13 @@ namespace raft {
 
 class Follower final : public State {
  public:
-  explicit Follower(std::shared_ptr<Context> context, rclcpp::Logger &logger)
-      : State(StateType::kFollower,
-              {{Event::kTerminated, StateType::kStandby},
-               {Event::kTimedout, StateType::kCandidate}},
-              context, logger) {}
+  explicit Follower(std::shared_ptr<Context> context, rclcpp::Logger& logger)
+      : State(
+            StateType::kFollower,
+            {{Event::kTerminated, StateType::kStandby},
+             {Event::kTimedout, StateType::kCandidate}},
+            context,
+            logger) {}
 
   void on_started() override;
   void on_timedout() override;
