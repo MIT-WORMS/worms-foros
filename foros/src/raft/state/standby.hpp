@@ -37,7 +37,8 @@ class Standby final : public State {
             StateType::kStandby,
             {{Event::kStarted, StateType::kFollower}},
             context,
-            logger) {}
+            logger
+        ) {}
 
   void on_started() override;
   void on_timedout() override;

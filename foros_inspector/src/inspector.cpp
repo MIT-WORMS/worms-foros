@@ -36,7 +36,8 @@ Inspector::Inspector() : rclcpp::Node(kNodeName), period_(get_period()) {
   subscriber_ = create_subscription<foros_msgs::msg::Inspector>(
       foros_msgs::msg::Inspector::TOPIC_NAME,
       10,
-      std::bind(&Inspector::inspector_message_received, this, std::placeholders::_1));
+      std::bind(&Inspector::inspector_message_received, this, std::placeholders::_1)
+  );
   intialize_screen();
   initialize_refresh_timer();
 }
@@ -45,9 +46,11 @@ Inspector::~Inspector() { terminate_screen(); }
 
 void Inspector::initialize_refresh_timer() {
   refresh_timer_ = rclcpp::create_timer(
-      this, rclcpp::Clock::make_shared(), std::chrono::milliseconds(1000), [&]() {
-        update_screen();
-      });
+      this,
+      rclcpp::Clock::make_shared(),
+      std::chrono::milliseconds(1000),
+      [&]() { update_screen(); }
+  );
 }
 
 void Inspector::reset_refresh_timer() {
@@ -104,7 +107,8 @@ void Inspector::add_summary() {
   add_newline();
   add_string(
       divider_,
-      name_column_ + large_column_ * 2 + medium_column_ + small_column_ * 2 + 10);
+      name_column_ + large_column_ * 2 + medium_column_ + small_column_ * 2 + 10
+  );
   add_newline();
   for (auto& cluster : clusters_) {
     add_cluster_item(cluster.second);
@@ -260,7 +264,8 @@ void Inspector::add_newline() { wprintw(window_, "\n"); }
 bool Inspector::is_outdated(rclcpp::Time time) {
   auto diff = now() - time;
   if (diff < std::chrono::duration_cast<std::chrono::milliseconds>(
-                 std::chrono::duration<double>(period_ * 1.5))) {
+                 std::chrono::duration<double>(period_ * 1.5)
+             )) {
     return false;
   }
   return true;
@@ -280,7 +285,8 @@ std::shared_ptr<ClusterInfo> Inspector::get_cluster_info(const std::string& name
 }
 
 std::shared_ptr<NodeInfo> Inspector::get_node_info(
-    std::shared_ptr<ClusterInfo> cluster, const uint32_t id) {
+    std::shared_ptr<ClusterInfo> cluster, const uint32_t id
+) {
   if (cluster == nullptr) {
     RCLCPP_ERROR(get_logger(), "cluster is nullptr");
     return nullptr;
@@ -334,7 +340,8 @@ void Inspector::update_cluster_info() {
 }
 
 void Inspector::inspector_message_received(
-    const foros_msgs::msg::Inspector::SharedPtr msg) {
+    const foros_msgs::msg::Inspector::SharedPtr msg
+) {
   if (is_outdated(msg->stamp)) {
     return;
   }

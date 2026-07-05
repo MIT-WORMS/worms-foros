@@ -35,7 +35,8 @@ class Standby final : public State {
             StateType::kStandby,
             {{Event::kActivate, StateType::kActive},
              {Event::kDeactivate, StateType::kInactive}},
-            logger) {}
+            logger
+        ) {}
 
   void on_activated() override;
   void on_deactivated() override;

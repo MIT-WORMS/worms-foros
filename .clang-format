@@ -7,5 +7,5 @@ PointerAlignment: Left
 ColumnLimit: 88
 BinPackArguments: false
 BinPackParameters: false
-AlignAfterOpenBracket: AlwaysBreak
+AlignAfterOpenBracket: BlockIndent
 ---

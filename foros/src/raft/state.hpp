@@ -40,7 +40,8 @@ class State {
       StateType type,
       std::map<Event, StateType> transition_map,
       std::shared_ptr<Context> context,
-      rclcpp::Logger& logger);
+      rclcpp::Logger& logger
+  );
   virtual ~State() {}
 
   StateType get_type();

@@ -67,7 +67,8 @@ class Inspector : public rclcpp::Node {
   bool is_outdated(rclcpp::Time time);
   std::shared_ptr<ClusterInfo> get_cluster_info(const std::string& name);
   std::shared_ptr<NodeInfo> get_node_info(
-      std::shared_ptr<ClusterInfo> cluster, const uint32_t id);
+      std::shared_ptr<ClusterInfo> cluster, const uint32_t id
+  );
   void update_cluster_info();
   void inspector_message_received(const foros_msgs::msg::Inspector::SharedPtr msg);
 

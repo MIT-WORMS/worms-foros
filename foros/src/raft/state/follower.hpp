@@ -39,7 +39,8 @@ class Follower final : public State {
             {{Event::kTerminated, StateType::kStandby},
              {Event::kTimedout, StateType::kCandidate}},
             context,
-            logger) {}
+            logger
+        ) {}
 
   void on_started() override;
   void on_timedout() override;

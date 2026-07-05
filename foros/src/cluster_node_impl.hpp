@@ -60,7 +60,8 @@ class ClusterNodeImpl final : Observer<lifecycle::StateType>,
       rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics,
       rclcpp::node_interfaces::NodeTimersInterface::SharedPtr node_timers,
       rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
-      const ClusterNodeOptions& options);
+      const ClusterNodeOptions& options
+  );
 
   ~ClusterNodeImpl();
 
@@ -71,11 +72,13 @@ class ClusterNodeImpl final : Observer<lifecycle::StateType>,
   void register_on_deactivated(std::function<void()> callback);
   void register_on_standby(std::function<void()> callback);
   CommandCommitResponseSharedFuture commit_command(
-      Command::SharedPtr command, CommandCommitResponseCallback& callback);
+      Command::SharedPtr command, CommandCommitResponseCallback& callback
+  );
   uint64_t get_commands_size();
   Command::SharedPtr get_command(uint64_t id);
   void register_on_committed(
-      std::function<void(const uint64_t, Command::SharedPtr)> callback);
+      std::function<void(const uint64_t, Command::SharedPtr)> callback
+  );
   void register_on_reverted(std::function<void(const uint64_t)> callback);
 
  private:

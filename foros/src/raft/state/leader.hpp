@@ -39,7 +39,8 @@ class Leader final : public State {
              {Event::kNewTermReceived, StateType::kFollower},
              {Event::kBroadcastTimedout, StateType::kStay}},
             context,
-            logger) {}
+            logger
+        ) {}
 
   void on_started() override;
   void on_timedout() override;

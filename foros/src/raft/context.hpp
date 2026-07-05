@@ -62,11 +62,13 @@ class Context {
       const unsigned int election_timeout_min,
       const unsigned int election_timeout_max,
       const std::string& temp_directory,
-      rclcpp::Logger& logger);
+      rclcpp::Logger& logger
+  );
 
   void initialize(
       const std::vector<uint32_t>& cluster_node_ids,
-      StateMachineInterface* state_machine_interface);
+      StateMachineInterface* state_machine_interface
+  );
   void start_election_timer();
   void stop_election_timer();
   void reset_election_timer();
@@ -81,13 +83,15 @@ class Context {
   void broadcast();
   void request_vote();
   CommandCommitResponseSharedFuture commit_command(
-      Command::SharedPtr command, CommandCommitResponseCallback callback);
+      Command::SharedPtr command, CommandCommitResponseCallback callback
+  );
   void commit_config(const ClusterConfig& new_config);
   void cancel_pending_commit();
   uint64_t get_commands_size();
   Command::SharedPtr get_command(uint64_t id);
   void register_on_committed(
-      std::function<void(const uint64_t, Command::SharedPtr)> callback);
+      std::function<void(const uint64_t, Command::SharedPtr)> callback
+  );
   void register_on_reverted(std::function<void(const uint64_t)> callback);
 
  private:
@@ -107,11 +111,13 @@ class Context {
       const uint64_t term,
       const uint32_t id,
       const uint64_t last_command_index,
-      const uint64_t last_command_term);
+      const uint64_t last_command_term
+  );
   void on_request_vote_requested(
       const std::shared_ptr<rmw_request_id_t> header,
       const std::shared_ptr<foros_msgs::srv::RequestVote::Request> request,
-      std::shared_ptr<foros_msgs::srv::RequestVote::Response> response);
+      std::shared_ptr<foros_msgs::srv::RequestVote::Response> response
+  );
   void on_request_vote_response(const uint64_t term, const bool vote_granted);
   void check_elected();
   void set_voted_for(uint32_t id);
@@ -120,28 +126,33 @@ class Context {
   void on_append_entries_requested(
       const std::shared_ptr<rmw_request_id_t> header,
       const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request,
-      std::shared_ptr<foros_msgs::srv::AppendEntries::Response> response);
+      std::shared_ptr<foros_msgs::srv::AppendEntries::Response> response
+  );
   uint32_t request_remote_commit(const Command::SharedPtr command);
   bool request_local_commit(
-      const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request);
+      const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request
+  );
   void request_local_rollback(const uint64_t commit_index);
   void on_broadcast_response(
       const uint32_t id,
       const uint64_t commit_index,
       const uint64_t term,
-      const bool success);
+      const bool success
+  );
   void finalize_commit(LogEntry::SharedPtr log, bool result);
   CommandCommitResponseSharedFuture complete_command_commit(
       CommandCommitResponseSharedPromise promise,
       CommandCommitResponseSharedFuture future,
       LogEntry::SharedPtr log,
       bool result,
-      CommandCommitResponseCallback callback);
+      CommandCommitResponseCallback callback
+  );
   CommandCommitResponseSharedFuture cancel_commit(
       CommandCommitResponseSharedPromise promise,
       CommandCommitResponseSharedFuture future,
       uint64_t id,
-      CommandCommitResponseCallback callback);
+      CommandCommitResponseCallback callback
+  );
   void apply_config(const ClusterConfig& new_config);
   std::shared_ptr<PendingCommit> get_pending_commit();
   bool set_pending_commit(std::shared_ptr<PendingCommit> commit);
@@ -149,7 +160,8 @@ class Context {
       const uint32_t id,
       const uint64_t commit_index,
       const uint64_t term,
-      const bool success);
+      const bool success
+  );
   const std::shared_ptr<LogEntry> on_log_get_request(uint64_t id);
   void inspector_message_requested(foros_msgs::msg::Inspector::SharedPtr msg);
 

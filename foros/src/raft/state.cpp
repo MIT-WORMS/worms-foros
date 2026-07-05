@@ -33,7 +33,8 @@ State::State(
     StateType type,
     std::map<Event, StateType> transition_map,
     std::shared_ptr<Context> context,
-    rclcpp::Logger& logger)
+    rclcpp::Logger& logger
+)
     : context_(context),
       type_(type),
       transition_map_(transition_map),
@@ -63,7 +64,8 @@ StateType State::handle(const Event& event) {
         logger_,
         "[%d]: invalid event: %d",
         static_cast<int>(type_),
-        static_cast<int>(event));
+        static_cast<int>(event)
+    );
     return type_;
   }
 

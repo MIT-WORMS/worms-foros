@@ -44,7 +44,8 @@ class StateMachine : public common::StateMachine<State, StateType, Event> {
             StateType::kInactive,
             {{StateType::kStandby, std::make_shared<Standby>(logger)},
              {StateType::kActive, std::make_shared<Active>(logger)},
-             {StateType::kInactive, std::make_shared<Inactive>(logger)}}) {}
+             {StateType::kInactive, std::make_shared<Inactive>(logger)}}
+        ) {}
 };
 
 }  // namespace lifecycle

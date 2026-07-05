@@ -47,7 +47,8 @@ Context::Context(
     const unsigned int election_timeout_min,
     const unsigned int election_timeout_max,
     const std::string& temp_directory,
-    rclcpp::Logger& logger)
+    rclcpp::Logger& logger
+)
     : cluster_name_(cluster_name),
       node_id_(node_id),
       node_base_(node_base),
@@ -69,12 +70,14 @@ Context::Context(
       node_topics,
       node_timers,
       node_clock,
-      std::bind(&Context::inspector_message_requested, this, std::placeholders::_1));
+      std::bind(&Context::inspector_message_requested, this, std::placeholders::_1)
+  );
 }
 
 void Context::initialize(
     const std::vector<uint32_t>& cluster_node_ids,
-    StateMachineInterface* state_machine_interface) {
+    StateMachineInterface* state_machine_interface
+) {
   initialize_node();
   config_ = ClusterConfig{cluster_node_ids};
   initialize_other_nodes(cluster_node_ids);
@@ -90,18 +93,22 @@ void Context::initialize_node() {
       this,
       std::placeholders::_1,
       std::placeholders::_2,
-      std::placeholders::_3));
+      std::placeholders::_3
+  ));
 
   append_entries_service_ =
       std::make_shared<rclcpp::Service<foros_msgs::srv::AppendEntries>>(
           node_base_->get_shared_rcl_node_handle(),
           NodeUtil::get_service_name(
-              cluster_name_, node_id_, NodeUtil::kAppendEntriesServiceName),
+              cluster_name_, node_id_, NodeUtil::kAppendEntriesServiceName
+          ),
           append_entries_callback_,
-          options);
+          options
+      );
 
   node_services_->add_service(
-      std::dynamic_pointer_cast<rclcpp::ServiceBase>(append_entries_service_), nullptr);
+      std::dynamic_pointer_cast<rclcpp::ServiceBase>(append_entries_service_), nullptr
+  );
 
   // Callback and service for a node requesting a vote
   request_vote_callback_.set(std::bind(
@@ -109,18 +116,22 @@ void Context::initialize_node() {
       this,
       std::placeholders::_1,
       std::placeholders::_2,
-      std::placeholders::_3));
+      std::placeholders::_3
+  ));
 
   request_vote_service_ =
       std::make_shared<rclcpp::Service<foros_msgs::srv::RequestVote>>(
           node_base_->get_shared_rcl_node_handle(),
           NodeUtil::get_service_name(
-              cluster_name_, node_id_, NodeUtil::kRequestVoteServiceName),
+              cluster_name_, node_id_, NodeUtil::kRequestVoteServiceName
+          ),
           request_vote_callback_,
-          options);
+          options
+      );
 
   node_services_->add_service(
-      std::dynamic_pointer_cast<rclcpp::ServiceBase>(request_vote_service_), nullptr);
+      std::dynamic_pointer_cast<rclcpp::ServiceBase>(request_vote_service_), nullptr
+  );
 }
 
 void Context::initialize_other_nodes(const std::vector<uint32_t>& cluster_node_ids) {
@@ -142,12 +153,13 @@ void Context::initialize_other_nodes(const std::vector<uint32_t>& cluster_node_i
         cluster_name_,
         id,
         next_index,
-        std::bind(&Context::on_log_get_request, this, std::placeholders::_1));
+        std::bind(&Context::on_log_get_request, this, std::placeholders::_1)
+    );
   }
 }
 
-void Context::set_state_machine_interface(
-    StateMachineInterface* state_machine_interface) {
+void Context::set_state_machine_interface(StateMachineInterface* state_machine_interface
+) {
   state_machine_interface_ = state_machine_interface;
 }
 
@@ -169,7 +181,8 @@ bool Context::update_term(uint64_t term, bool self) {
 void Context::on_append_entries_requested(
     const std::shared_ptr<rmw_request_id_t>,
     const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request,
-    std::shared_ptr<foros_msgs::srv::AppendEntries::Response> response) {
+    std::shared_ptr<foros_msgs::srv::AppendEntries::Response> response
+) {
   // Return early if the requested leader isn't in the cluster
   if (is_valid_node(request->leader_id) == false) {
     response->success = false;
@@ -212,7 +225,8 @@ void Context::on_append_entries_requested(
 }
 
 bool Context::request_local_commit(
-    const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request) {
+    const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request
+) {
   auto log = store_->log();
 
   // If this commit already exists
@@ -234,10 +248,12 @@ bool Context::request_local_commit(
     log = LogEntry::make_shared(
         request->leader_commit,
         request->term,
-        ClusterConfig::deserialize(request->entries));
+        ClusterConfig::deserialize(request->entries)
+    );
   } else {
     log = LogEntry::make_shared(
-        request->leader_commit, request->term, Command::make_shared(request->entries));
+        request->leader_commit, request->term, Command::make_shared(request->entries)
+    );
   }
 
   // Try to push and commit
@@ -256,7 +272,8 @@ void Context::request_local_rollback(const uint64_t commit_index) {
 void Context::on_request_vote_requested(
     const std::shared_ptr<rmw_request_id_t>,
     const std::shared_ptr<foros_msgs::srv::RequestVote::Request> request,
-    std::shared_ptr<foros_msgs::srv::RequestVote::Response> response) {
+    std::shared_ptr<foros_msgs::srv::RequestVote::Response> response
+) {
   if (is_valid_node(request->candidate_id) == false) {
     return;
   }
@@ -267,7 +284,8 @@ void Context::on_request_vote_requested(
       request->term,
       request->candidate_id,
       request->last_data_index,
-      request->loat_data_term);
+      request->loat_data_term
+  );
 }
 
 void Context::start_election_timer() {
@@ -290,7 +308,8 @@ void Context::start_election_timer() {
         }
         state_machine_interface_->on_election_timedout();
       },
-      node_base_->get_context());
+      node_base_->get_context()
+  );
   node_timers_->add_timer(election_timer_, nullptr);
 }
 
@@ -316,7 +335,8 @@ void Context::start_broadcast_timer() {
       node_clock_->get_clock(),
       std::chrono::milliseconds(broadcast_timeout_),
       [this]() { state_machine_interface_->on_broadcast_timedout(); },
-      node_base_->get_context());
+      node_base_->get_context()
+  );
   node_timers_->add_timer(broadcast_timer_, nullptr);
 }
 
@@ -342,7 +362,8 @@ std::tuple<uint64_t, bool> Context::vote(
     const uint64_t term,
     const uint32_t id,
     const uint64_t last_data_index,
-    const uint64_t) {
+    const uint64_t
+) {
   bool granted = false;
   auto log = store_->log();
   auto current_term = store_->current_term();
@@ -392,7 +413,9 @@ void Context::broadcast() {
             std::placeholders::_1,
             std::placeholders::_2,
             std::placeholders::_3,
-            std::placeholders::_4));
+            std::placeholders::_4
+        )
+    );
   }
 }
 
@@ -406,7 +429,9 @@ void Context::request_vote() {
             &Context::on_request_vote_response,
             this,
             std::placeholders::_1,
-            std::placeholders::_2));
+            std::placeholders::_2
+        )
+    );
   }
   check_elected();
 }
@@ -461,7 +486,8 @@ CommandCommitResponseSharedFuture Context::complete_command_commit(
     CommandCommitResponseSharedFuture future,
     LogEntry::SharedPtr log,
     bool result,
-    CommandCommitResponseCallback callback) {
+    CommandCommitResponseCallback callback
+) {
   finalize_commit(log, result);
 
   // Resolve the future for a command
@@ -479,7 +505,8 @@ CommandCommitResponseSharedFuture Context::cancel_commit(
     CommandCommitResponseSharedPromise promise,
     CommandCommitResponseSharedFuture future,
     uint64_t id,
-    CommandCommitResponseCallback callback) {
+    CommandCommitResponseCallback callback
+) {
   auto response = CommandCommitResponse::make_shared(id, nullptr, false);
   promise->set_value(response);
   if (callback != nullptr) {
@@ -500,7 +527,8 @@ void Context::apply_config(const ClusterConfig& new_config) {
         cluster_name_,
         id,
         next_index,
-        std::bind(&Context::on_log_get_request, this, std::placeholders::_1));
+        std::bind(&Context::on_log_get_request, this, std::placeholders::_1)
+    );
   }
 
   // Remove nodes no longer in this config
@@ -521,7 +549,8 @@ void Context::apply_config(const ClusterConfig& new_config) {
 }
 
 CommandCommitResponseSharedFuture Context::commit_command(
-    Command::SharedPtr command, CommandCommitResponseCallback callback) {
+    Command::SharedPtr command, CommandCommitResponseCallback callback
+) {
   CommandCommitResponseSharedPromise commit_promise =
       std::make_shared<CommandCommitResponsePromise>();
   CommandCommitResponseSharedFuture commit_future = commit_promise->get_future();
@@ -539,8 +568,9 @@ CommandCommitResponseSharedFuture Context::commit_command(
     return complete_command_commit(commit_promise, commit_future, log, true, callback);
   }
 
-  if (set_pending_commit(std::make_shared<PendingCommit>(
-          log, commit_promise, commit_future, callback)) == false) {
+  if (set_pending_commit(
+          std::make_shared<PendingCommit>(log, commit_promise, commit_future, callback)
+      ) == false) {
     return cancel_commit(commit_promise, commit_future, log->id_, callback);
   }
 
@@ -570,7 +600,8 @@ void Context::commit_config(const ClusterConfig& new_config) {
         cluster_name_,
         id,
         next_index,
-        std::bind(&Context::on_log_get_request, this, std::placeholders::_1));
+        std::bind(&Context::on_log_get_request, this, std::placeholders::_1)
+    );
   }
 
   // Set a null commit callback, not needed for config changes
@@ -615,7 +646,8 @@ void Context::cancel_pending_commit() {
   auto commit = clear_pending_commit();
   if (commit != nullptr && commit->log_ != nullptr) {
     complete_command_commit(
-        commit->promise_, commit->future_, commit->log_, false, commit->callback_);
+        commit->promise_, commit->future_, commit->log_, false, commit->callback_
+    );
   }
 }
 
@@ -633,7 +665,8 @@ void Context::handle_pending_commit_response(
     const uint32_t id,
     const uint64_t commit_index,
     const uint64_t term,
-    const bool success) {
+    const bool success
+) {
   std::shared_ptr<PendingCommit> commit;
   bool result = false;
 
@@ -668,14 +701,16 @@ void Context::handle_pending_commit_response(
   }
 
   complete_command_commit(
-      commit->promise_, commit->future_, commit->log_, result, commit->callback_);
+      commit->promise_, commit->future_, commit->log_, result, commit->callback_
+  );
 }
 
 void Context::on_broadcast_response(
     const uint32_t id,
     const uint64_t commit_index,
     const uint64_t term,
-    const bool success) {
+    const bool success
+) {
   if (term >= store_->current_term()) {
     update_term(term);
   }
@@ -708,12 +743,14 @@ Command::SharedPtr Context::get_command(uint64_t id) {
 }
 
 void Context::register_on_committed(
-    std::function<void(uint64_t, Command::SharedPtr)> callback) {
+    std::function<void(uint64_t, Command::SharedPtr)> callback
+) {
   set_commit_callback(callback);
 }
 
 void Context::set_commit_callback(
-    std::function<void(uint64_t, Command::SharedPtr)> callback) {
+    std::function<void(uint64_t, Command::SharedPtr)> callback
+) {
   std::lock_guard<std::recursive_mutex> lock(callback_mutex_);
   commit_callback_ = callback;
 }

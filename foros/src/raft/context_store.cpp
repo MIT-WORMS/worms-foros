@@ -299,7 +299,8 @@ LogEntry::SharedPtr ContextStore::load_log(const uint64_t id) {
   if (status.ok() == false) {
     if (!status.IsNotFound()) {
       RCLCPP_ERROR(
-          logger_, "log term for %lu get failed: %s", id, status.ToString().c_str());
+          logger_, "log term for %lu get failed: %s", id, status.ToString().c_str()
+      );
     }
     return nullptr;
   }
@@ -317,7 +318,8 @@ LogEntry::SharedPtr ContextStore::load_log(const uint64_t id) {
   if (status.ok() == false) {
     if (!status.IsNotFound()) {
       RCLCPP_ERROR(
-          logger_, "log type for %lu get failed: %s", id, status.ToString().c_str());
+          logger_, "log type for %lu get failed: %s", id, status.ToString().c_str()
+      );
     }
     return nullptr;
   }
@@ -360,7 +362,8 @@ bool ContextStore::store_log_term(const uint64_t id, const uint64_t term) {
   auto status = db_->Put(leveldb::WriteOptions(), get_log_term_key(id), value);
   if (status.ok() == false) {
     RCLCPP_ERROR(
-        logger_, "logs term for %lu set failed: %s", id, status.ToString().c_str());
+        logger_, "logs term for %lu set failed: %s", id, status.ToString().c_str()
+    );
     return false;
   }
 
@@ -377,7 +380,8 @@ bool ContextStore::store_log_type(const uint64_t id, const LogEntryType type) {
   auto status = db_->Put(leveldb::WriteOptions(), get_log_type_key(id), value);
   if (status.ok() == false) {
     RCLCPP_ERROR(
-        logger_, "logs type for %lu set failed: %s", id, status.ToString().c_str());
+        logger_, "logs type for %lu set failed: %s", id, status.ToString().c_str()
+    );
     return false;
   }
 
@@ -395,7 +399,8 @@ bool ContextStore::store_log_data(const uint64_t id, std::vector<uint8_t> data) 
   auto status = db_->Put(leveldb::WriteOptions(), get_log_data_key(id), value);
   if (status.ok() == false) {
     RCLCPP_ERROR(
-        logger_, "logs term for %lu set failed: %s", id, status.ToString().c_str());
+        logger_, "logs term for %lu set failed: %s", id, status.ToString().c_str()
+    );
     return false;
   }
 

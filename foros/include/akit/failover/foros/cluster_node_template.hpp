@@ -40,7 +40,8 @@ std::shared_ptr<ClusterNodePublisher<MessageT, AllocatorT>>
 ClusterNode::create_publisher(
     const std::string& topic_name,
     const rclcpp::QoS& qos,
-    const rclcpp::PublisherOptionsWithAllocator<AllocatorT>& options) {
+    const rclcpp::PublisherOptionsWithAllocator<AllocatorT>& options
+) {
   auto pub = rclcpp::create_publisher<
       MessageT,
       AllocatorT,
@@ -61,32 +62,33 @@ std::shared_ptr<SubscriptionT> ClusterNode::create_subscription(
     const rclcpp::QoS& qos,
     CallbackT&& callback,
     const rclcpp::SubscriptionOptionsWithAllocator<AllocatorT>& options,
-    typename MessageMemoryStrategyT::SharedPtr msg_mem_strat) {
+    typename MessageMemoryStrategyT::SharedPtr msg_mem_strat
+) {
   return rclcpp::create_subscription<MessageT>(
-      *this,
-      topic_name,
-      qos,
-      std::forward<CallbackT>(callback),
-      options,
-      msg_mem_strat);
+      *this, topic_name, qos, std::forward<CallbackT>(callback), options, msg_mem_strat
+  );
 }
 
 template <typename DurationRepT, typename DurationT, typename CallbackT>
 typename rclcpp::WallTimer<CallbackT>::SharedPtr ClusterNode::create_wall_timer(
     std::chrono::duration<DurationRepT, DurationT> period,
     CallbackT callback,
-    rclcpp::CallbackGroup::SharedPtr group) {
+    rclcpp::CallbackGroup::SharedPtr group
+) {
   return rclcpp::create_wall_timer(
-      period, std::move(callback), group, node_base_.get(), node_timers_.get());
+      period, std::move(callback), group, node_base_.get(), node_timers_.get()
+  );
 }
 
 template <typename ServiceT>
 typename rclcpp::Client<ServiceT>::SharedPtr ClusterNode::create_client(
     const std::string& service_name,
     const rmw_qos_profile_t& qos_profile,
-    rclcpp::CallbackGroup::SharedPtr group) {
+    rclcpp::CallbackGroup::SharedPtr group
+) {
   return rclcpp::create_client<ServiceT>(
-      node_base_, node_graph_, node_services_, service_name, qos_profile, group);
+      node_base_, node_graph_, node_services_, service_name, qos_profile, group
+  );
 }
 
 template <typename ServiceT, typename CallbackT>
@@ -94,7 +96,8 @@ typename ClusterNodeService<ServiceT>::SharedPtr ClusterNode::create_service(
     const std::string& service_name,
     CallbackT&& callback,
     const rmw_qos_profile_t& qos_profile,
-    rclcpp::CallbackGroup::SharedPtr group) {
+    rclcpp::CallbackGroup::SharedPtr group
+) {
   rclcpp::AnyServiceCallback<ServiceT> any_service_callback;
   any_service_callback.set(std::forward<CallbackT>(callback));
 
@@ -105,7 +108,8 @@ typename ClusterNodeService<ServiceT>::SharedPtr ClusterNode::create_service(
       node_base_->get_shared_rcl_node_handle(),
       service_name,
       any_service_callback,
-      service_options);
+      service_options
+  );
   auto serv_base_ptr = std::dynamic_pointer_cast<rclcpp::ServiceBase>(service);
   node_services_->add_service(serv_base_ptr, group);
   service->set_node_lifecycle_interface(this);
@@ -117,13 +121,15 @@ auto ClusterNode::declare_parameter(
     const std::string& name,
     const ParameterT& default_value,
     const rcl_interfaces::msg::ParameterDescriptor& parameter_descriptor,
-    bool ignore_override) {
+    bool ignore_override
+) {
   try {
     return declare_parameter(
                name,
                rclcpp::ParameterValue(default_value),
                parameter_descriptor,
-               ignore_override)
+               ignore_override
+    )
         .get<ParameterT>();
   } catch (const rclcpp::ParameterTypeException& ex) {
     throw rclcpp::exceptions::InvalidParameterTypeException(name, ex.what());
@@ -134,7 +140,8 @@ template <typename ParameterT>
 auto ClusterNode::declare_parameter(
     const std::string& name,
     const rcl_interfaces::msg::ParameterDescriptor& parameter_descriptor,
-    bool ignore_override) {
+    bool ignore_override
+) {
   // get advantage of parameter value template magic
   // to get
   // the correct rclcpp::ParameterType from ParameterT
@@ -148,7 +155,8 @@ template <typename ParameterT>
 std::vector<ParameterT> ClusterNode::declare_parameters(
     const std::string& parameter_namespace,
     const std::map<std::string, ParameterT>& parameters,
-    bool ignore_overrides) {
+    bool ignore_overrides
+) {
   std::vector<ParameterT> result;
   std::string normalized_namespace =
       parameter_namespace.empty() ? "" : (parameter_namespace + ".");
@@ -161,8 +169,10 @@ std::vector<ParameterT> ClusterNode::declare_parameters(
             normalized_namespace + element.first,
             element.second,
             rcl_interfaces::msg::ParameterDescriptor(),
-            ignore_overrides);
-      });
+            ignore_overrides
+        );
+      }
+  );
   return result;
 }
 
@@ -172,7 +182,8 @@ std::vector<ParameterT> ClusterNode::declare_parameters(
     const std::map<
         std::string,
         std::pair<ParameterT, rcl_interfaces::msg::ParameterDescriptor>>& parameters,
-    bool ignore_overrides) {
+    bool ignore_overrides
+) {
   std::vector<ParameterT> result;
   std::string normalized_namespace =
       parameter_namespace.empty() ? "" : (parameter_namespace + ".");
@@ -185,8 +196,10 @@ std::vector<ParameterT> ClusterNode::declare_parameters(
             normalized_namespace + element.first,
             element.second.first,
             element.second.second,
-            ignore_overrides));
-      });
+            ignore_overrides
+        ));
+      }
+  );
   return result;
 }
 
@@ -204,9 +217,8 @@ bool ClusterNode::get_parameter(const std::string& name, ParameterT& parameter) 
 
 template <typename ParameterT>
 bool ClusterNode::get_parameter_or(
-    const std::string& name,
-    ParameterT& parameter,
-    const ParameterT& alternative_value) const {
+    const std::string& name, ParameterT& parameter, const ParameterT& alternative_value
+) const {
   bool got_parameter = get_parameter(name, parameter);
   if (!got_parameter) {
     parameter = alternative_value;
@@ -219,7 +231,8 @@ bool ClusterNode::get_parameter_or(
 // type is the value in the map.
 template <typename ParameterT>
 bool ClusterNode::get_parameters(
-    const std::string& prefix, std::map<std::string, ParameterT>& values) const {
+    const std::string& prefix, std::map<std::string, ParameterT>& values
+) const {
   std::map<std::string, rclcpp::Parameter> params;
   bool result = node_parameters_->get_parameters_by_prefix(prefix, params);
   if (result) {

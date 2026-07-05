@@ -46,7 +46,8 @@ class StateMachine : public common::StateMachine<State, StateType, Event>,
   explicit StateMachine(
       const std::vector<uint32_t>& cluster_node_ids,
       std::shared_ptr<Context> context,
-      rclcpp::Logger& logger);
+      rclcpp::Logger& logger
+  );
 
  private:
   void on_election_timedout() override;

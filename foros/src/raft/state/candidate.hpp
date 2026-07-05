@@ -41,7 +41,8 @@ class Candidate final : public State {
              {Event::kLeaderDiscovered, StateType::kFollower},
              {Event::kNewTermReceived, StateType::kFollower}},
             context,
-            logger) {}
+            logger
+        ) {}
 
   void on_started() override;
   void on_timedout() override;

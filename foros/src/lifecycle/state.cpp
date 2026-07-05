@@ -29,7 +29,8 @@ namespace foros {
 namespace lifecycle {
 
 State::State(
-    StateType type, std::map<Event, StateType> transition_map, rclcpp::Logger& logger)
+    StateType type, std::map<Event, StateType> transition_map, rclcpp::Logger& logger
+)
     : type_(type),
       transition_map_(transition_map),
       logger_(logger.get_child("lifecycle")) {}

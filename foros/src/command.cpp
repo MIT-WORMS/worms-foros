@@ -29,7 +29,8 @@ Command::Command(const char* data, uint64_t size) : data_(data, data + size) {}
 const std::vector<uint8_t>& Command::data() const { return data_; }
 
 CommandCommitResponse::CommandCommitResponse(
-    uint64_t id, Command::SharedPtr command, bool result)
+    uint64_t id, Command::SharedPtr command, bool result
+)
     : id_(id), command_(command), result_(result) {}
 
 uint64_t CommandCommitResponse::id() const { return id_; }

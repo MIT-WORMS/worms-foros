@@ -32,9 +32,12 @@ int main(int argc, char** argv) {
     logger.set_level(rclcpp::Logger::Level::Info);
 
     auto subscription = node->create_subscription<std_msgs::msg::String>(
-        kTopicName, 10, [&](const std_msgs::msg::String::SharedPtr msg) {
+        kTopicName,
+        10,
+        [&](const std_msgs::msg::String::SharedPtr msg) {
           RCLCPP_INFO(logger, "topic received from %s", msg->data.c_str());
-        });
+        }
+    );
 
     rclcpp::spin(node->get_node_base_interface());
     rclcpp::shutdown();

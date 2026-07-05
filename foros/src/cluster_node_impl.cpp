@@ -39,7 +39,8 @@ ClusterNodeImpl::ClusterNodeImpl(
     rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics,
     rclcpp::node_interfaces::NodeTimersInterface::SharedPtr node_timers,
     rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
-    const ClusterNodeOptions& options)
+    const ClusterNodeOptions& options
+)
     : logger_(node_logging->get_logger().get_child("cluster_node")),
       raft_context_(std::make_shared<raft::Context>(
           cluster_name,
@@ -53,9 +54,11 @@ ClusterNodeImpl::ClusterNodeImpl(
           options.election_timeout_min(),
           options.election_timeout_max(),
           options.temp_directory(),
-          logger_)),
-      raft_fsm_(std::make_unique<raft::StateMachine>(
-          cluster_node_ids, raft_context_, logger_)),
+          logger_
+      )),
+      raft_fsm_(
+          std::make_unique<raft::StateMachine>(cluster_node_ids, raft_context_, logger_)
+      ),
       lifecycle_fsm_(std::make_unique<lifecycle::StateMachine>(logger_)) {
   lifecycle_fsm_->subscribe(this);
   raft_fsm_->subscribe(this);
@@ -110,7 +113,8 @@ void ClusterNodeImpl::handle(const raft::StateType& state) {
           logger_,
           "Invalid raft state (%lu) : %d",
           raft_context_->get_term(),
-          static_cast<int>(state));
+          static_cast<int>(state)
+      );
       break;
   }
 }
@@ -120,7 +124,8 @@ bool ClusterNodeImpl::is_activated() {
 }
 
 CommandCommitResponseSharedFuture ClusterNodeImpl::commit_command(
-    Command::SharedPtr command, CommandCommitResponseCallback& callback) {
+    Command::SharedPtr command, CommandCommitResponseCallback& callback
+) {
   return raft_context_->commit_command(command, callback);
 }
 
@@ -157,12 +162,13 @@ Command::SharedPtr ClusterNodeImpl::get_command(uint64_t id) {
 }
 
 void ClusterNodeImpl::register_on_committed(
-    std::function<void(const uint64_t, Command::SharedPtr)> callback) {
+    std::function<void(const uint64_t, Command::SharedPtr)> callback
+) {
   raft_context_->register_on_committed(callback);
 }
 
-void ClusterNodeImpl::register_on_reverted(
-    std::function<void(const uint64_t)> callback) {
+void ClusterNodeImpl::register_on_reverted(std::function<void(const uint64_t)> callback
+) {
   raft_context_->register_on_reverted(callback);
 }
 

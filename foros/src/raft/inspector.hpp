@@ -37,13 +37,15 @@ class Inspector {
       rclcpp::node_interfaces::NodeTimersInterface::SharedPtr node_timers,
       rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
       std::function<void(foros_msgs::msg::Inspector::SharedPtr msg)>
-          message_request_callback);
+          message_request_callback
+  );
 
   ~Inspector();
 
  private:
   void initialize_publisher(
-      rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics);
+      rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics
+  );
 
   bool is_enabled();
   double get_period();
