@@ -85,7 +85,10 @@ bool OtherNode::broadcast(
     if (log != nullptr && log->id_ >= next_index) {
       auto entry = get_log_entry_callback_(next_index);
       if (entry != nullptr) {
-        request->entries = entry->command_->data();
+        request->entry_type = static_cast<uint8_t>(entry->type());
+        request->entries = (entry->type() == LogEntryType::kCommand)
+                               ? entry->command()->data()
+                               : entry->cluster_config().serialize();
         request->leader_commit = entry->id_;
         request->term = entry->term_;
       }

@@ -18,24 +18,51 @@
 #define AKIT_FAILOVER_FOROS_RAFT_LOG_ENTRY_HPP_
 
 #include <rclcpp/macros.hpp>
+#include <variant>
+#include <vector>
 
 #include "akit/failover/foros/command.hpp"
+#include "raft/cluster_config.hpp"
 
 namespace akit {
 namespace failover {
 namespace foros {
 namespace raft {
 
+enum class LogEntryType : uint8_t {
+  kCommand = 0,
+  kClusterConfig = 1,
+};
+
 class LogEntry {
  public:
   RCLCPP_SMART_PTR_DEFINITIONS(LogEntry)
 
   LogEntry(uint64_t id, uint64_t term, Command::SharedPtr command)
-      : id_(id), term_(term), command_(command) {}
+      : id_(id), term_(term), payload_(command) {}
+
+  LogEntry(uint64_t id, uint64_t term, ClusterConfig config)
+      : id_(id), term_(term), payload_(std::move(config)) {}
+
+  LogEntryType type() const {
+    return std::holds_alternative<Command::SharedPtr>(payload_)
+               ? LogEntryType::kCommand
+               : LogEntryType::kClusterConfig;
+  }
+
+  const Command::SharedPtr command() const {
+    return std::get<Command::SharedPtr>(payload_);
+  }
+
+  const ClusterConfig& cluster_config() const {
+    return std::get<ClusterConfig>(payload_);
+  }
 
   const uint64_t id_;
   const uint64_t term_;
-  const Command::SharedPtr command_;
+
+ private:
+  std::variant<Command::SharedPtr, ClusterConfig> payload_;
 };
 
 }  // namespace raft

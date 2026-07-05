@@ -171,8 +171,8 @@ TEST_F(TestRaft, TestContextStore) {
   EXPECT_EQ(log, store.log());
   EXPECT_EQ(log->id_, (uint64_t)0);
   EXPECT_EQ(log->term_, (uint64_t)10);
-  EXPECT_EQ(log->command_->data()[0], kTestData);
-  EXPECT_EQ(log->command_->data().size(), (std::size_t)1);
+  EXPECT_EQ(log->command()->data()[0], kTestData);
+  EXPECT_EQ(log->command()->data().size(), (std::size_t)1);
 
   EXPECT_EQ(store.revert_log(1), false);
   EXPECT_EQ(store.revert_log(0), true);
@@ -204,8 +204,8 @@ TEST_F(TestRaft, TestContextStoreWithInitialData) {
   EXPECT_EQ(log, store.log());
   EXPECT_EQ(log->id_, kMaxCommitSize - 1);
   EXPECT_EQ(log->term_, kCurrentTerm);
-  EXPECT_EQ(log->command_->data()[0], kTestData);
-  EXPECT_EQ(log->command_->data().size(), sizeof(kTestData));
+  EXPECT_EQ(log->command()->data()[0], kTestData);
+  EXPECT_EQ(log->command()->data().size(), sizeof(kTestData));
 }
 
 TEST_F(TestRaft, TestContextStoreWithInvalidPath) {

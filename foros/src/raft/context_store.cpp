@@ -292,6 +292,7 @@ LogEntry::SharedPtr ContextStore::load_log(const uint64_t id) {
     return nullptr;
   }
 
+  // Unpack the term of this log
   std::string value;
   auto status = db_->Get(leveldb::ReadOptions(), get_log_term_key(id), &value);
 
@@ -311,11 +312,42 @@ LogEntry::SharedPtr ContextStore::load_log(const uint64_t id) {
 
   uint64_t term = *(reinterpret_cast<const uint64_t*>(slice.data()));
 
+  // Unpack the type of this log
+  status = db_->Get(leveldb::ReadOptions(), get_log_type_key(id), &value);
+  if (status.ok() == false) {
+    if (!status.IsNotFound()) {
+      RCLCPP_ERROR(
+          logger_, "log type for %lu get failed: %s", id, status.ToString().c_str());
+    }
+    return nullptr;
+  }
+
+  slice = value;
+  if (slice.size() < sizeof(LogEntryType)) {
+    RCLCPP_ERROR(logger_, "log type value size is invalid");
+    return nullptr;
+  }
+
+  LogEntryType type = *(reinterpret_cast<const LogEntryType*>(slice.data()));
+
+  // Unpack the raw data of this log
   status = db_->Get(leveldb::ReadOptions(), get_log_data_key(id), &value);
   slice = value;
-  auto command = Command::make_shared(slice.data(), slice.size());
 
-  return LogEntry::make_shared(id, term, command);
+  // Convert the data into its corresponding log entry type
+  switch (type) {
+    case LogEntryType::kCommand: {
+      auto command = Command::make_shared(slice.data(), slice.size());
+      return LogEntry::make_shared(id, term, command);
+    }
+    case LogEntryType::kClusterConfig: {
+      auto config = ClusterConfig::deserialize(slice.data());
+      return LogEntry::make_shared(id, term, config);
+    }
+    default:
+      RCLCPP_ERROR(logger_, "unknown log type");
+      return nullptr;
+  }
 }
 
 bool ContextStore::store_log_term(const uint64_t id, const uint64_t term) {
@@ -329,6 +361,23 @@ bool ContextStore::store_log_term(const uint64_t id, const uint64_t term) {
   if (status.ok() == false) {
     RCLCPP_ERROR(
         logger_, "logs term for %lu set failed: %s", id, status.ToString().c_str());
+    return false;
+  }
+
+  return true;
+}
+
+bool ContextStore::store_log_type(const uint64_t id, const LogEntryType type) {
+  if (db_ == nullptr) {
+    RCLCPP_ERROR(logger_, "db is nullptr");
+    return false;
+  }
+
+  leveldb::Slice value(reinterpret_cast<const char*>(&type), sizeof(LogEntryType));
+  auto status = db_->Put(leveldb::WriteOptions(), get_log_type_key(id), value);
+  if (status.ok() == false) {
+    RCLCPP_ERROR(
+        logger_, "logs type for %lu set failed: %s", id, status.ToString().c_str());
     return false;
   }
 
@@ -353,12 +402,16 @@ bool ContextStore::store_log_data(const uint64_t id, std::vector<uint8_t> data) 
   return true;
 }
 
-std::string ContextStore::get_log_data_key(uint64_t id) {
-  return std::string(kLogKeyPrefix + std::to_string(id) + kLogDataKeySuffix);
-}
-
 std::string ContextStore::get_log_term_key(uint64_t id) {
   return std::string(kLogKeyPrefix + std::to_string(id) + kLogTermKeySuffix);
+}
+
+std::string ContextStore::get_log_type_key(uint64_t id) {
+  return std::string(kLogKeyPrefix + std::to_string(id) + kLogTypeKeySuffix);
+}
+
+std::string ContextStore::get_log_data_key(uint64_t id) {
+  return std::string(kLogKeyPrefix + std::to_string(id) + kLogDataKeySuffix);
 }
 
 bool ContextStore::push_log(LogEntry::SharedPtr log) {
@@ -368,7 +421,7 @@ bool ContextStore::push_log(LogEntry::SharedPtr log) {
     return false;
   }
 
-  if (log->command_ == nullptr) {
+  if (log->type() == LogEntryType::kCommand && log->command() == nullptr) {
     RCLCPP_ERROR(logger_, "command of log is nullptr");
     return false;
   }
@@ -382,8 +435,26 @@ bool ContextStore::push_log(LogEntry::SharedPtr log) {
     return false;
   }
 
-  if (store_log_data(log->id_, log->command_->data()) == false) {
+  if (store_log_type(log->id_, log->type()) == false) {
     return false;
+  }
+
+  switch (log->type()) {
+    // Data is already in bytes for normal commands
+    case LogEntryType::kCommand:
+      if (store_log_data(log->id_, log->command()->data()) == false) {
+        return false;
+      }
+      break;
+    // Configs have to be serialized first
+    case LogEntryType::kClusterConfig:
+      if (store_log_data(log->id_, log->cluster_config().serialize()) == false) {
+        return false;
+      }
+      break;
+    default:
+      RCLCPP_ERROR(logger_, "unknown log type");
+      return false;
   }
 
   if (store_logs_size(logs_.size() + 1) == false) {

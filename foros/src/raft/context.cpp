@@ -18,7 +18,6 @@
 
 #include <foros_msgs/srv/request_vote.hpp>
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <random>
 #include <string>
@@ -27,7 +26,8 @@
 #include <vector>
 
 #include "common/node_util.hpp"
-#include "common/void_callback.hpp"
+#include "raft/cluster_config.hpp"
+#include "raft/log_entry.hpp"
 #include "raft/state_machine_interface.hpp"
 
 namespace akit {
@@ -55,8 +55,6 @@ Context::Context(
       node_services_(node_services),
       node_timers_(node_timers),
       node_clock_(node_clock),
-      majority_(0),
-      cluster_size_(0),
       election_timeout_min_(election_timeout_min),
       election_timeout_max_(election_timeout_max),
       random_generator_(random_device_()),
@@ -78,7 +76,7 @@ void Context::initialize(
     const std::vector<uint32_t>& cluster_node_ids,
     StateMachineInterface* state_machine_interface) {
   initialize_node();
-  set_cluster_size(cluster_node_ids.size());
+  config_ = ClusterConfig{cluster_node_ids};
   initialize_other_nodes(cluster_node_ids);
   set_state_machine_interface(state_machine_interface);
 }
@@ -86,6 +84,7 @@ void Context::initialize(
 void Context::initialize_node() {
   rcl_service_options_t options = rcl_service_get_default_options();
 
+  // Callback and service for adding to the log
   append_entries_callback_.set(std::bind(
       &Context::on_append_entries_requested,
       this,
@@ -104,6 +103,7 @@ void Context::initialize_node() {
   node_services_->add_service(
       std::dynamic_pointer_cast<rclcpp::ServiceBase>(append_entries_service_), nullptr);
 
+  // Callback and service for a node requesting a vote
   request_vote_callback_.set(std::bind(
       &Context::on_request_vote_requested,
       this,
@@ -129,6 +129,7 @@ void Context::initialize_other_nodes(const std::vector<uint32_t>& cluster_node_i
 
   int64_t next_index = store_->logs_size();
 
+  // Initialize a handle to known peers
   for (auto id : cluster_node_ids) {
     if (id == node_id_) {
       continue;
@@ -143,11 +144,6 @@ void Context::initialize_other_nodes(const std::vector<uint32_t>& cluster_node_i
         next_index,
         std::bind(&Context::on_log_get_request, this, std::placeholders::_1));
   }
-}
-
-void Context::set_cluster_size(uint32_t size) {
-  cluster_size_ = size;
-  majority_ = (size >> 1) + 1;
 }
 
 void Context::set_state_machine_interface(
@@ -174,6 +170,7 @@ void Context::on_append_entries_requested(
     const std::shared_ptr<rmw_request_id_t>,
     const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request,
     std::shared_ptr<foros_msgs::srv::AppendEntries::Response> response) {
+  // Return early if the requested leader isn't in the cluster
   if (is_valid_node(request->leader_id) == false) {
     response->success = false;
     return;
@@ -200,6 +197,7 @@ void Context::on_append_entries_requested(
     return;
   }
 
+  // Access the log and commit data if up to date
   auto log = store_->log(request->prev_log_index);
   if (log == nullptr) {
     response->success = false;
@@ -217,27 +215,37 @@ bool Context::request_local_commit(
     const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request) {
   auto log = store_->log();
 
+  // If this commit already exists
   if (log != nullptr) {
-    if (log->command_ != nullptr && log->id_ == request->leader_commit &&
-        log->term_ == request->term) {
+    // Early return if the commit matches the request
+    if (log->id_ == request->leader_commit && log->term_ == request->term) {
       return true;
     }
 
+    // Revert back to this request if we are newer than the request
     if (log->id_ >= request->leader_commit) {
       store_->revert_log(request->leader_commit);
       invoke_revert_callback(request->leader_commit);
     }
   }
 
-  log = LogEntry::make_shared(
-      request->leader_commit, request->term, Command::make_shared(request->entries));
+  // Commit didn't exist so we make a new one
+  if (request->entry_type == static_cast<uint8_t>(LogEntryType::kClusterConfig)) {
+    log = LogEntry::make_shared(
+        request->leader_commit,
+        request->term,
+        ClusterConfig::deserialize(request->entries));
+  } else {
+    log = LogEntry::make_shared(
+        request->leader_commit, request->term, Command::make_shared(request->entries));
+  }
 
+  // Try to push and commit
   if (store_->push_log(log) == false) {
     return false;
   }
 
   invoke_commit_callback(log);
-
   return true;
 }
 
@@ -253,6 +261,7 @@ void Context::on_request_vote_requested(
     return;
   }
 
+  // Update term and determine if this node gets the vote
   update_term(request->term);
   std::tie(response->term, response->vote_granted) = vote(
       request->term,
@@ -270,6 +279,7 @@ void Context::start_election_timer() {
   std::uniform_int_distribution<> dist(election_timeout_min_, election_timeout_max_);
   auto period = dist(random_generator_);
 
+  // Randomized election timer
   election_timer_ = rclcpp::GenericTimer<rclcpp::VoidCallbackType>::make_shared(
       node_clock_->get_clock(),
       std::chrono::milliseconds(period),
@@ -337,6 +347,7 @@ std::tuple<uint64_t, bool> Context::vote(
   auto log = store_->log();
   auto current_term = store_->current_term();
 
+  // Vote for this node if it is a new election, we haven't voted, and its log is newer
   if (term >= current_term) {
     if (store_->voted() == false && (log == nullptr || log->id_ <= last_data_index)) {
       store_->voted_for(id);
@@ -421,7 +432,7 @@ void Context::on_request_vote_response(const uint64_t term, const bool vote_gran
 }
 
 void Context::check_elected() {
-  if (store_->vote_received() < majority_) return;
+  if (store_->vote_received() < config_.quorum_size()) return;
 
   uint64_t id;
   auto log = store_->log();
@@ -438,18 +449,25 @@ void Context::check_elected() {
   state_machine_interface_->on_elected();
 }
 
-CommandCommitResponseSharedFuture Context::complete_commit(
+void Context::finalize_commit(LogEntry::SharedPtr log, bool result) {
+  if (result) {
+    store_->push_log(log);
+    invoke_commit_callback(log);
+  }
+}
+
+CommandCommitResponseSharedFuture Context::complete_command_commit(
     CommandCommitResponseSharedPromise promise,
     CommandCommitResponseSharedFuture future,
     LogEntry::SharedPtr log,
     bool result,
     CommandCommitResponseCallback callback) {
-  if (result == true) {
-    store_->push_log(log);
-    invoke_commit_callback(log);
-  }
+  finalize_commit(log, result);
 
-  auto response = CommandCommitResponse::make_shared(log->id_, log->command_, result);
+  // Resolve the future for a command
+  Command::SharedPtr cmd =
+      (log->type() == LogEntryType::kCommand) ? log->command() : nullptr;
+  auto response = CommandCommitResponse::make_shared(log->id_, cmd, result);
   promise->set_value(response);
   if (callback != nullptr) {
     callback(future);
@@ -470,11 +488,45 @@ CommandCommitResponseSharedFuture Context::cancel_commit(
   return future;
 }
 
+void Context::apply_config(const ClusterConfig& new_config) {
+  // Add new nodes in this config
+  int64_t next_index = store_->logs_size();
+  for (auto id : new_config.member_ids) {
+    if (id == node_id_ || other_nodes_.count(id) > 0) continue;
+    other_nodes_[id] = std::make_shared<OtherNode>(
+        node_base_,
+        node_graph_,
+        node_services_,
+        cluster_name_,
+        id,
+        next_index,
+        std::bind(&Context::on_log_get_request, this, std::placeholders::_1));
+  }
+
+  // Remove nodes no longer in this config
+  std::vector<uint32_t> ids_to_remove;
+  for (auto& node : other_nodes_) {
+    // If this node isn't in the new config remove it
+    if (!new_config.is_member(node.first)) {
+      ids_to_remove.push_back(node.first);
+    }
+  }
+  for (auto id : ids_to_remove) {
+    other_nodes_.erase(id);
+  }
+
+  config_ = new_config;
+
+  // TODO: No removal detection yet, test adding fist
+}
+
 CommandCommitResponseSharedFuture Context::commit_command(
     Command::SharedPtr command, CommandCommitResponseCallback callback) {
   CommandCommitResponseSharedPromise commit_promise =
       std::make_shared<CommandCommitResponsePromise>();
   CommandCommitResponseSharedFuture commit_future = commit_promise->get_future();
+
+  // Cancel this commit if we aren't leader
   if (state_machine_interface_->is_leader() == false) {
     return cancel_commit(commit_promise, commit_future, store_->logs_size(), callback);
   }
@@ -482,8 +534,9 @@ CommandCommitResponseSharedFuture Context::commit_command(
   auto log =
       LogEntry::make_shared(store_->logs_size(), store_->current_term(), command);
 
-  if (cluster_size_ <= 1) {
-    return complete_commit(commit_promise, commit_future, log, true, callback);
+  // Bypass pending for size of 1
+  if (config_.quorum_size() <= 1) {
+    return complete_command_commit(commit_promise, commit_future, log, true, callback);
   }
 
   if (set_pending_commit(std::make_shared<PendingCommit>(
@@ -492,6 +545,38 @@ CommandCommitResponseSharedFuture Context::commit_command(
   }
 
   return commit_future;
+}
+
+void Context::commit_config(const ClusterConfig& new_config) {
+  if (state_machine_interface_->is_leader() == false) return;
+
+  auto log =
+      LogEntry::make_shared(store_->logs_size(), store_->current_term(), new_config);
+
+  // Bypass pending for size of 1
+  if (config_.quorum_size() <= 1) {
+    finalize_commit(log, true);
+    return;
+  }
+
+  // Add new nodes to other_nodes_ so they can receive the config change
+  int64_t next_index = store_->logs_size();
+  for (auto id : new_config.member_ids) {
+    if (id == node_id_ || other_nodes_.count(id) > 0) continue;
+    other_nodes_[id] = std::make_shared<OtherNode>(
+        node_base_,
+        node_graph_,
+        node_services_,
+        cluster_name_,
+        id,
+        next_index,
+        std::bind(&Context::on_log_get_request, this, std::placeholders::_1));
+  }
+
+  // Set a null commit callback, not needed for config changes
+  auto promise = std::make_shared<CommandCommitResponsePromise>();
+  auto future = promise->get_future().share();
+  set_pending_commit(std::make_shared<PendingCommit>(log, promise, future, nullptr));
 }
 
 std::shared_ptr<PendingCommit> Context::get_pending_commit() {
@@ -529,7 +614,7 @@ bool Context::set_pending_commit(std::shared_ptr<PendingCommit> commit) {
 void Context::cancel_pending_commit() {
   auto commit = clear_pending_commit();
   if (commit != nullptr && commit->log_ != nullptr) {
-    complete_commit(
+    complete_command_commit(
         commit->promise_, commit->future_, commit->log_, false, commit->callback_);
   }
 }
@@ -555,24 +640,26 @@ void Context::handle_pending_commit_response(
   {
     std::lock_guard<std::mutex> lock(pending_commit_mutex_);
     commit = pending_commit_;
+
+    // Return early on bad commit
     if (commit == nullptr || commit->log_ == nullptr ||
         commit->log_->id_ != commit_index || commit->log_->term_ != term) {
       return;
     }
     commit->result_map_[id] = success;
 
-    unsigned int received_count = 1;
+    // Check if quorum has been reached (enough in agreement)
     unsigned int success_count = 1;
     for (auto& node : other_nodes_) {
       if (commit->result_map_.count(node.first) > 0) {
-        received_count++;
         if (commit->result_map_[node.first] == success) {
           success_count++;
         }
       }
     }
 
-    if (success_count < majority_) {
+    // No quorum leave early
+    if (success_count < config_.quorum_size()) {
       return;
     }
 
@@ -580,7 +667,7 @@ void Context::handle_pending_commit_response(
     pending_commit_ = nullptr;
   }
 
-  complete_commit(
+  complete_command_commit(
       commit->promise_, commit->future_, commit->log_, result, commit->callback_);
 }
 
@@ -605,17 +692,19 @@ const std::shared_ptr<LogEntry> Context::on_log_get_request(uint64_t id) {
   return store_->log(id);
 }
 
-bool Context::is_valid_node(uint32_t id) { return other_nodes_.count(id) != 0; }
+bool Context::is_valid_node(uint32_t id) {
+  return config_.is_member(id) && id != node_id_;
+}
 
 uint64_t Context::get_commands_size() { return store_->logs_size(); }
 
 Command::SharedPtr Context::get_command(uint64_t id) {
   auto log = store_->log(id);
-  if (log == nullptr) {
+  if (log == nullptr || log->type() != LogEntryType::kCommand) {
     return nullptr;
   }
 
-  return log->command_;
+  return log->command();
 }
 
 void Context::register_on_committed(
@@ -640,8 +729,18 @@ void Context::set_revert_callback(std::function<void(uint64_t)> callback) {
 
 void Context::invoke_commit_callback(LogEntry::SharedPtr log) {
   std::lock_guard<std::recursive_mutex> lock(callback_mutex_);
-  if (log != nullptr && commit_callback_ != nullptr) {
-    commit_callback_(log->id_, log->command_);
+  if (log == nullptr) {
+    return;
+  }
+
+  if (log->type() == LogEntryType::kCommand) {
+    // Pass the command to the callback if populated
+    if (commit_callback_ != nullptr) {
+      commit_callback_(log->id_, log->command());
+    }
+  } else {
+    // Update the live membership
+    apply_config(log->cluster_config());
   }
 }
 
@@ -655,7 +754,7 @@ void Context::invoke_revert_callback(uint64_t id) {
 void Context::inspector_message_requested(foros_msgs::msg::Inspector::SharedPtr msg) {
   msg->stamp = node_clock_->get_clock()->now();
   msg->cluster_name = cluster_name_;
-  msg->cluster_size = cluster_size_;
+  msg->cluster_size = config_.member_ids.size();
   msg->id = node_id_;
   msg->term = store_->current_term();
   msg->data_size = store_->logs_size();

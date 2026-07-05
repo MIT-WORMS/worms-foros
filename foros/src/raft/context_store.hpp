@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "akit/failover/foros/command.hpp"
+#include "raft/cluster_config.hpp"
 #include "raft/log_entry.hpp"
 
 namespace akit {
@@ -66,16 +67,19 @@ class ContextStore final {
   uint64_t load_logs_size();
   LogEntry::SharedPtr load_log(const uint64_t id);
   bool store_log_term(const uint64_t id, const uint64_t term);
+  bool store_log_type(const uint64_t id, const LogEntryType type);
   bool store_log_data(const uint64_t id, std::vector<uint8_t> data);
-  std::string get_log_data_key(const uint64_t id);
   std::string get_log_term_key(const uint64_t id);
+  std::string get_log_type_key(const uint64_t id);
+  std::string get_log_data_key(const uint64_t id);
 
   const char* kCurrentTermKey = "current_term";
   const char* kVotedForKey = "voted_for";
   const char* kVotedKey = "voted";
   const char* kLogKeyPrefix = "log/";
-  const char* kLogDataKeySuffix = "/data";
   const char* kLogTermKeySuffix = "/term";
+  const char* kLogTypeKeySuffix = "/type";
+  const char* kLogDataKeySuffix = "/data";
   const char* kLogSizeKey = "log_size";
 
   leveldb::DB* db_;

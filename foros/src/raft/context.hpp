@@ -36,7 +36,7 @@
 #include <vector>
 
 #include "akit/failover/foros/command.hpp"
-#include "raft/commit_info.hpp"
+#include "raft/cluster_config.hpp"
 #include "raft/context_store.hpp"
 #include "raft/inspector.hpp"
 #include "raft/other_node.hpp"
@@ -82,6 +82,7 @@ class Context {
   void request_vote();
   CommandCommitResponseSharedFuture commit_command(
       Command::SharedPtr command, CommandCommitResponseCallback callback);
+  void commit_config(const ClusterConfig& new_config);
   void cancel_pending_commit();
   uint64_t get_commands_size();
   Command::SharedPtr get_command(uint64_t id);
@@ -129,7 +130,8 @@ class Context {
       const uint64_t commit_index,
       const uint64_t term,
       const bool success);
-  CommandCommitResponseSharedFuture complete_commit(
+  void finalize_commit(LogEntry::SharedPtr log, bool result);
+  CommandCommitResponseSharedFuture complete_command_commit(
       CommandCommitResponseSharedPromise promise,
       CommandCommitResponseSharedFuture future,
       LogEntry::SharedPtr log,
@@ -140,6 +142,7 @@ class Context {
       CommandCommitResponseSharedFuture future,
       uint64_t id,
       CommandCommitResponseCallback callback);
+  void apply_config(const ClusterConfig& new_config);
   std::shared_ptr<PendingCommit> get_pending_commit();
   bool set_pending_commit(std::shared_ptr<PendingCommit> commit);
   void handle_pending_commit_response(
@@ -173,8 +176,7 @@ class Context {
 
   std::unique_ptr<ContextStore> store_;  // raft data store
 
-  uint32_t majority_;                  // number of majority of the full cluster
-  uint32_t cluster_size_;              // number of nodes in the cluster
+  ClusterConfig config_;               // current cluster membership
   unsigned int election_timeout_min_;  // minimum election timeout in msecs
   unsigned int election_timeout_max_;  // maximum election timeout in msecs
   std::random_device random_device_;   // random seed for election timeout
