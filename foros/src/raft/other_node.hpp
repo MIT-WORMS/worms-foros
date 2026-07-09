@@ -17,6 +17,7 @@
 #ifndef AKIT_FAILOVER_FOROS_RAFT_OTHER_NODE_HPP_
 #define AKIT_FAILOVER_FOROS_RAFT_OTHER_NODE_HPP_
 
+#include <chrono>
 #include <foros_msgs/srv/append_entries.hpp>
 #include <foros_msgs/srv/request_vote.hpp>
 #include <functional>
@@ -35,7 +36,7 @@ namespace failover {
 namespace foros {
 namespace raft {
 
-class OtherNode {
+class OtherNode : public std::enable_shared_from_this<OtherNode> {
  public:
   OtherNode(
       rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
@@ -64,6 +65,10 @@ class OtherNode {
 
   void update_match_index(const uint64_t match_index);
 
+  bool should_evict(std::chrono::milliseconds threshold);
+
+  void reset_evict_time();
+
  private:
   void send_append_entries(
       const foros_msgs::srv::AppendEntries::Request::SharedPtr request,
@@ -77,6 +82,9 @@ class OtherNode {
   uint64_t next_index_;
   // index of highest log entry known to be replicated on this node
   uint64_t match_index_;
+
+  std::chrono::steady_clock::time_point last_success_time_;
+
   rclcpp::Client<foros_msgs::srv::AppendEntries>::SharedPtr append_entries_;
   rclcpp::Client<foros_msgs::srv::RequestVote>::SharedPtr request_vote_;
   std::function<const std::shared_ptr<LogEntry>(uint64_t)> get_log_entry_callback_;

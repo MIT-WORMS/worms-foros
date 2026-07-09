@@ -53,6 +53,7 @@ ClusterNodeImpl::ClusterNodeImpl(
           node_clock,
           options.election_timeout_min(),
           options.election_timeout_max(),
+          options.eviction_timeout(),
           options.temp_directory(),
           logger_
       )),

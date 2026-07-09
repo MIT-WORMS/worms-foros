@@ -47,6 +47,7 @@ Context::Context(
     rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
     const unsigned int election_timeout_min,
     const unsigned int election_timeout_max,
+    const unsigned int eviction_timeout,
     const std::string& temp_directory,
     rclcpp::Logger& logger
 )
@@ -59,6 +60,7 @@ Context::Context(
       node_clock_(node_clock),
       election_timeout_min_(election_timeout_min),
       election_timeout_max_(election_timeout_max),
+      eviction_timeout_(std::chrono::milliseconds(eviction_timeout)),
       random_generator_(random_device_()),
       broadcast_timeout_(election_timeout_min_ / 10),
       broadcast_received_(false),
@@ -467,6 +469,9 @@ uint32_t Context::get_node_id() { return node_id_; }
 uint64_t Context::get_term() { return store_->current_term(); }
 
 void Context::broadcast() {
+  // Evict any dead nodes
+  evict_nodes();
+
   LogEntry::SharedPtr log;
 
   auto pending_commit = get_pending_commit();
@@ -938,6 +943,36 @@ void Context::invoke_revert_callback(uint64_t id) {
   std::lock_guard<std::recursive_mutex> lock(callback_mutex_);
   if (revert_callback_ != nullptr) {
     revert_callback_(id);
+  }
+}
+
+void Context::evict_nodes() {
+  if (!state_machine_interface_->is_leader()) return;
+  if (pending_commit_ != nullptr) return;
+
+  for (auto& [id, node] : other_nodes_) {
+    if (node->should_evict(eviction_timeout_)) {
+      RCLCPP_WARN(
+          logger_,
+          "Node %u has not responded in %lums, removing from cluster.",
+          id,
+          eviction_timeout_.count()
+      );
+
+      // Commit a new config without this node and wait for its removal
+      std::vector<uint32_t> new_members;
+      for (auto member_id : config_.member_ids) {
+        if (member_id != id) new_members.push_back(member_id);
+      }
+      commit_config(ClusterConfig{new_members});
+      return;
+    }
+  }
+}
+
+void Context::reset_eviction_timers() {
+  for (auto& [id, node] : other_nodes_) {
+    node->reset_evict_time();
   }
 }
 

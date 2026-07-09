@@ -94,6 +94,7 @@ class TestContext : public akit::failover::foros::raft::Context {
             node->get_node_clock_interface(),
             election_timeout_min,
             election_timeout_max,
+            0,
             temp_directory,
             logger
         ),
@@ -260,6 +261,7 @@ TEST_F(TestRaft, TestContextTermMethods) {
       node.get_node_clock_interface(),
       kElectionTimeoutMin,
       kElectionTimeoutMax,
+      0,
       kTempPath,
       logger_
   );

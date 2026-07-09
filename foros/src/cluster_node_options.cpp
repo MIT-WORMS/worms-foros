@@ -29,6 +29,7 @@ ClusterNodeOptions::ClusterNodeOptions(rcl_allocator_t allocator)
     : NodeOptions(allocator),
       election_timeout_min_(150),
       election_timeout_max_(300),
+      eviction_timeout_(0),
       temp_directory_(std::filesystem::temp_directory_path()) {}
 
 unsigned int ClusterNodeOptions::election_timeout_min() const {
@@ -46,6 +47,13 @@ unsigned int ClusterNodeOptions::election_timeout_max() const {
 
 ClusterNodeOptions& ClusterNodeOptions::election_timeout_max(unsigned int max) {
   election_timeout_max_ = max;
+  return *this;
+}
+
+unsigned int ClusterNodeOptions::eviction_timeout() const { return eviction_timeout_; }
+
+ClusterNodeOptions& ClusterNodeOptions::eviction_timeout(unsigned int timeout_ms) {
+  eviction_timeout_ = timeout_ms;
   return *this;
 }
 

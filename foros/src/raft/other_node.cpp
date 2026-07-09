@@ -38,6 +38,7 @@ OtherNode::OtherNode(
     : node_id_(node_id),
       next_index_(next_index),
       match_index_(0),
+      last_success_time_(std::chrono::steady_clock::now()),
       get_log_entry_callback_(get_log_entry_callback) {
   rcl_client_options_t options = rcl_client_get_default_options();
   options.qos = rmw_qos_profile_services_default;
@@ -121,6 +122,9 @@ void OtherNode::send_append_entries(
     std::function<void(const uint32_t, const uint64_t, const uint64_t, const bool)>
         callback
 ) {
+  // shared_ptr to this incase node is evicted while waiting for response
+  auto self = shared_from_this();
+
   auto response = append_entries_->async_send_request(
       request,
       [=](rclcpp::Client<foros_msgs::srv::AppendEntries>::SharedFutureWithRequest future
@@ -129,13 +133,17 @@ void OtherNode::send_append_entries(
         auto request = ret.first;
         auto response = ret.second;
         {
-          std::lock_guard<std::mutex> lock(index_mutex_);
+          std::lock_guard<std::mutex> lock(self->index_mutex_);
+
+          // Reset eviction timer
+          self->last_success_time_ = std::chrono::steady_clock::now();
+
           if (response->success) {
-            this->match_index_ = request->leader_commit;
-            this->next_index_ = this->match_index_ + 1;
+            self->match_index_ = request->leader_commit;
+            self->next_index_ = self->match_index_ + 1;
           } else {
-            if (this->next_index_ > 0) {
-              this->next_index_--;
+            if (self->next_index_ > 0) {
+              self->next_index_--;
             }
           }
         }
@@ -180,6 +188,18 @@ void OtherNode::set_match_index(const uint64_t match_index) {
   std::lock_guard<std::mutex> lock(index_mutex_);
   match_index_ = match_index;
   next_index_ = match_index_ + 1;
+}
+
+bool OtherNode::should_evict(std::chrono::milliseconds threshold) {
+  if (threshold.count() <= 0) return false;
+  std::lock_guard<std::mutex> lock(index_mutex_);
+  auto now = std::chrono::steady_clock::now();
+  return (now - last_success_time_) > threshold;
+}
+
+void OtherNode::reset_evict_time() {
+  std::lock_guard<std::mutex> lock(index_mutex_);
+  last_success_time_ = std::chrono::steady_clock::now();
 }
 
 }  // namespace raft

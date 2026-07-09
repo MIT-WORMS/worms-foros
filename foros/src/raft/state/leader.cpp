@@ -42,6 +42,7 @@ void Leader::on_terminated() {}
 void Leader::entry() {
   context_->start_broadcast_timer();
   context_->start_membership_service();
+  context_->reset_eviction_timers();
 }
 
 void Leader::exit() {

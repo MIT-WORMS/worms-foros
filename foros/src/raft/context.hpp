@@ -62,6 +62,7 @@ class Context {
       rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
       const unsigned int election_timeout_min,
       const unsigned int election_timeout_max,
+      const unsigned int eviction_timeout,
       const std::string& temp_directory,
       rclcpp::Logger& logger
   );
@@ -76,6 +77,7 @@ class Context {
   void start_broadcast_timer();
   void stop_broadcast_timer();
   void reset_broadcast_timer();
+  void reset_eviction_timers();
   void start_membership_service();
   void stop_membership_service();
   std::string get_node_name();
@@ -174,6 +176,7 @@ class Context {
       const bool success
   );
   const std::shared_ptr<LogEntry> on_log_get_request(uint64_t id);
+  void evict_nodes();
   void inspector_message_requested(foros_msgs::msg::Inspector::SharedPtr msg);
 
   std::shared_ptr<PendingCommit> clear_pending_commit();
@@ -206,11 +209,12 @@ class Context {
 
   std::unique_ptr<ContextStore> store_;  // raft data store
 
-  ClusterConfig config_;               // current cluster membership
-  unsigned int election_timeout_min_;  // minimum election timeout in msecs
-  unsigned int election_timeout_max_;  // maximum election timeout in msecs
-  std::random_device random_device_;   // random seed for election timeout
-  std::mt19937 random_generator_;      // random generator for election timeout
+  ClusterConfig config_;                        // current cluster membership
+  unsigned int election_timeout_min_;           // minimum election timeout in msecs
+  unsigned int election_timeout_max_;           // maximum election timeout in msecs
+  std::chrono::milliseconds eviction_timeout_;  // eviction timeout in msecs
+  std::random_device random_device_;            // random seed for election timeout
+  std::mt19937 random_generator_;               // random generator for election timeout
   rclcpp::TimerBase::SharedPtr election_timer_;  // election timeout timer
 
   rclcpp::TimerBase::SharedPtr join_request_timer_;  // join request timer
