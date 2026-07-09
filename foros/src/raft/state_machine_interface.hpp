@@ -26,11 +26,13 @@ namespace raft {
 
 class StateMachineInterface {
  public:
+  virtual void on_promoted_to_member() = 0;
   virtual void on_election_timedout() = 0;
   virtual void on_new_term_received() = 0;
   virtual void on_elected() = 0;
   virtual void on_broadcast_timedout() = 0;
   virtual void on_leader_discovered() = 0;
+  virtual void on_removed_from_cluster() = 0;
   virtual bool is_leader() = 0;
   virtual StateType get_current_state() = 0;
 };

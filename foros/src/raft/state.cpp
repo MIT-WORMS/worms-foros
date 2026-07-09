@@ -47,6 +47,7 @@ State::State(
       {Event::kElected, std::bind(&State::on_elected, this)},
       {Event::kTerminated, std::bind(&State::on_terminated, this)},
       {Event::kBroadcastTimedout, std::bind(&State::on_broadcast_timedout, this)},
+      {Event::kPromotedToMember, std::bind(&State::on_promoted_to_member, this)},
   };
 }
 

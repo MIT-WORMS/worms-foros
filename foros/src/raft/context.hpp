@@ -18,6 +18,7 @@
 #define AKIT_FAILOVER_FOROS_RAFT_CONTEXT_HPP_
 
 #include <foros_msgs/srv/append_entries.hpp>
+#include <foros_msgs/srv/request_membership.hpp>
 #include <foros_msgs/srv/request_vote.hpp>
 #include <map>
 #include <memory>
@@ -75,13 +76,18 @@ class Context {
   void start_broadcast_timer();
   void stop_broadcast_timer();
   void reset_broadcast_timer();
+  void start_membership_service();
+  void stop_membership_service();
   std::string get_node_name();
+  uint32_t get_node_id();
   void vote_for_me();
   void reset_vote();
   void increase_term();
   uint64_t get_term();
   void broadcast();
   void request_vote();
+  void send_join_request_async();
+  bool request_membership_change(uint32_t node_id, bool add_request);
   CommandCommitResponseSharedFuture commit_command(
       Command::SharedPtr command, CommandCommitResponseCallback callback
   );
@@ -123,6 +129,11 @@ class Context {
   void set_voted_for(uint32_t id);
 
   // Data replication methods
+  void on_membership_change_requested(
+      const std::shared_ptr<rmw_request_id_t> header,
+      const std::shared_ptr<foros_msgs::srv::RequestMembership::Request> request,
+      std::shared_ptr<foros_msgs::srv::RequestMembership::Response> response
+  );
   void on_append_entries_requested(
       const std::shared_ptr<rmw_request_id_t> header,
       const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request,
@@ -183,6 +194,13 @@ class Context {
   rclcpp::AnyServiceCallback<foros_msgs::srv::AppendEntries> append_entries_callback_;
   rclcpp::Service<foros_msgs::srv::RequestVote>::SharedPtr request_vote_service_;
   rclcpp::AnyServiceCallback<foros_msgs::srv::RequestVote> request_vote_callback_;
+  rclcpp::Service<foros_msgs::srv::RequestMembership>::SharedPtr
+      request_membership_service_;
+  rclcpp::AnyServiceCallback<foros_msgs::srv::RequestMembership>
+      request_membership_callback_;
+
+  rclcpp::Client<foros_msgs::srv::RequestMembership>::SharedPtr
+      request_membership_client_;
 
   std::map<uint32_t, std::shared_ptr<OtherNode>> other_nodes_;
 
@@ -194,6 +212,8 @@ class Context {
   std::random_device random_device_;   // random seed for election timeout
   std::mt19937 random_generator_;      // random generator for election timeout
   rclcpp::TimerBase::SharedPtr election_timer_;  // election timeout timer
+
+  rclcpp::TimerBase::SharedPtr join_request_timer_;  // join request timer
 
   unsigned int broadcast_timeout_;                // broadcast timeout
   rclcpp::TimerBase::SharedPtr broadcast_timer_;  // broadcast timer

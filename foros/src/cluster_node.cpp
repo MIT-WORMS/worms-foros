@@ -383,6 +383,10 @@ void ClusterNode::register_on_standby(std::function<void()> callback) {
   impl_->register_on_standby(callback);
 }
 
+bool ClusterNode::request_membership_change(uint32_t node_id, bool add_request) {
+  return impl_->request_membership_change(node_id, add_request);
+}
+
 CommandCommitResponseSharedFuture ClusterNode::commit_command(
     Command::SharedPtr command, CommandCommitResponseCallback callback
 ) {

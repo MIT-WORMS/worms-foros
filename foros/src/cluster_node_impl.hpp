@@ -71,6 +71,7 @@ class ClusterNodeImpl final : Observer<lifecycle::StateType>,
   void register_on_activated(std::function<void()> callback);
   void register_on_deactivated(std::function<void()> callback);
   void register_on_standby(std::function<void()> callback);
+  bool request_membership_change(uint32_t node_id, bool add_request);
   CommandCommitResponseSharedFuture commit_command(
       Command::SharedPtr command, CommandCommitResponseCallback& callback
   );

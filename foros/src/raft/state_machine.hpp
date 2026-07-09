@@ -26,10 +26,6 @@
 #include "raft/context.hpp"
 #include "raft/event.hpp"
 #include "raft/state.hpp"
-#include "raft/state/candidate.hpp"
-#include "raft/state/follower.hpp"
-#include "raft/state/leader.hpp"
-#include "raft/state/standby.hpp"
 #include "raft/state_machine_interface.hpp"
 #include "raft/state_type.hpp"
 
@@ -50,11 +46,13 @@ class StateMachine : public common::StateMachine<State, StateType, Event>,
   );
 
  private:
+  void on_promoted_to_member() override;
   void on_election_timedout() override;
   void on_new_term_received() override;
   void on_elected() override;
   void on_broadcast_timedout() override;
   void on_leader_discovered() override;
+  void on_removed_from_cluster() override;
   bool is_leader() override;
   StateType get_current_state() override;
 

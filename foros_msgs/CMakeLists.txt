@@ -12,6 +12,7 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/AppendEntries.srv"
   "srv/RequestVote.srv"
+  "srv/RequestMembership.srv"
   "msg/Inspector.msg"
   DEPENDENCIES builtin_interfaces
   ADD_LINTER_TESTS

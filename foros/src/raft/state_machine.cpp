@@ -21,6 +21,11 @@
 #include <vector>
 
 #include "raft/context.hpp"
+#include "raft/state/candidate.hpp"
+#include "raft/state/follower.hpp"
+#include "raft/state/leader.hpp"
+#include "raft/state/learner.hpp"
+#include "raft/state/standby.hpp"
 
 namespace akit {
 namespace failover {
@@ -33,15 +38,22 @@ StateMachine::StateMachine(
     rclcpp::Logger& logger
 )
     : common::StateMachine<State, StateType, Event>(
-          StateType::kStandby,
+          std::find(
+              cluster_node_ids.begin(), cluster_node_ids.end(), context->get_node_id()
+          ) != cluster_node_ids.end()
+              ? StateType::kStandby
+              : StateType::kLearner,
           {{StateType::kStandby, std::make_shared<Standby>(context, logger)},
            {StateType::kFollower, std::make_shared<Follower>(context, logger)},
            {StateType::kCandidate, std::make_shared<Candidate>(context, logger)},
-           {StateType::kLeader, std::make_shared<Leader>(context, logger)}}
+           {StateType::kLeader, std::make_shared<Leader>(context, logger)},
+           {StateType::kLearner, std::make_shared<Learner>(context, logger)}}
       ),
       context_(context) {
   context_->initialize(cluster_node_ids, this);
 }
+
+void StateMachine::on_promoted_to_member() { handle(Event::kPromotedToMember); }
 
 void StateMachine::on_election_timedout() { handle(Event::kTimedout); }
 
@@ -52,6 +64,8 @@ void StateMachine::on_elected() { handle(Event::kElected); }
 void StateMachine::on_broadcast_timedout() { handle(Event::kBroadcastTimedout); }
 
 void StateMachine::on_leader_discovered() { handle(Event::kLeaderDiscovered); }
+
+void StateMachine::on_removed_from_cluster() { handle(Event::kTerminated); }
 
 bool StateMachine::is_leader() {
   return get_current_state_type() == StateType::kLeader;

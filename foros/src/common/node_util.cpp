@@ -36,8 +36,13 @@ std::string NodeUtil::get_service_name(
   return get_node_name(cluster_name, node_id) + service_name;
 }
 
+std::string NodeUtil::request_membership_service_name(const std::string& cluster_name) {
+  return "/" + cluster_name + kRequestMembershipServiceName;
+}
+
 const char* NodeUtil::kAppendEntriesServiceName = "/append_entries";
 const char* NodeUtil::kRequestVoteServiceName = "/request_vote";
+const char* NodeUtil::kRequestMembershipServiceName = "/request_membership";
 
 }  // namespace foros
 }  // namespace failover

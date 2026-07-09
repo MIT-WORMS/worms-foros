@@ -210,6 +210,9 @@ void Inspector::add_state_name(const uint8_t state) {
     case foros_msgs::msg::Inspector::LEADER:
       add_bold_string("Leader", medium_column_, Colors::kGreenOnBlack);
       break;
+    case foros_msgs::msg::Inspector::LEARNER:
+      add_string("Learner", medium_column_, Colors::kCyanOnBlack);
+      break;
     default:
       add_string("Unknown", medium_column_, Colors::kRedOnBlack);
       break;

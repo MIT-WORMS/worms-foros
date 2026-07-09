@@ -27,6 +27,8 @@ void Candidate::on_started() {}
 
 void Candidate::on_timedout() { start_election(); }
 
+void Candidate::on_promoted_to_member() {}
+
 void Candidate::on_broadcast_timedout() {}
 
 void Candidate::on_leader_discovered() {}

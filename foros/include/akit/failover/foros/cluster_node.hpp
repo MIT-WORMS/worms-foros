@@ -1144,6 +1144,16 @@ class ClusterNode : public std::enable_shared_from_this<ClusterNode>,
   CLUSTER_NODE_PUBLIC
   void register_on_standby(std::function<void()> callback);
 
+  /// Request a membership change to the cluster.
+  /**
+   * \param[in] node_id The ID of the node for which to request membership change.
+   * \param[in] add_request Whether to add or remove the node from the cluster.
+   * \return true if the request is successful, false otherwise.
+   */
+  CLUSTER_NODE_PUBLIC bool request_membership_change(
+      uint32_t node_id, bool add_request
+  );
+
   /// Commit a command to cluster.
   /**
    * \param[in] command A command to commit.

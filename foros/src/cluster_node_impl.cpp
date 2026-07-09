@@ -108,6 +108,9 @@ void ClusterNodeImpl::handle(const raft::StateType& state) {
     case raft::StateType::kLeader:
       lifecycle_fsm_->handle(lifecycle::Event::kActivate);
       break;
+    case raft::StateType::kLearner:
+      lifecycle_fsm_->handle(lifecycle::Event::kStandby);
+      break;
     default:
       RCLCPP_ERROR(
           logger_,
@@ -121,6 +124,10 @@ void ClusterNodeImpl::handle(const raft::StateType& state) {
 
 bool ClusterNodeImpl::is_activated() {
   return lifecycle_fsm_->get_current_state_type() == lifecycle::StateType::kActive;
+}
+
+bool ClusterNodeImpl::request_membership_change(uint32_t node_id, bool add_request) {
+  return raft_context_->request_membership_change(node_id, add_request);
 }
 
 CommandCommitResponseSharedFuture ClusterNodeImpl::commit_command(

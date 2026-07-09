@@ -38,6 +38,11 @@ class NodeUtil {
       const uint32_t node_id,
       const std::string& service_name
   );
+
+  static std::string request_membership_service_name(const std::string& cluster_name);
+
+ private:
+  static const char* kRequestMembershipServiceName;
 };
 
 }  // namespace foros

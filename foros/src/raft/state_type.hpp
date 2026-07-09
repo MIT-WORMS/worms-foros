@@ -24,6 +24,7 @@ namespace raft {
 
 enum class StateType {
   kStandby,
+  kLearner,
   kFollower,
   kCandidate,
   kLeader,

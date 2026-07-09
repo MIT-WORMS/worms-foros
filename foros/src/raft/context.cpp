@@ -20,6 +20,7 @@
 #include <functional>
 #include <memory>
 #include <random>
+#include <rclcpp/logging.hpp>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -85,7 +86,9 @@ void Context::initialize(
 }
 
 void Context::initialize_node() {
-  rcl_service_options_t options = rcl_service_get_default_options();
+  rcl_service_options_t service_options = rcl_service_get_default_options();
+  rcl_client_options_t client_options = rcl_client_get_default_options();
+  client_options.qos = rmw_qos_profile_services_default;
 
   // Callback and service for adding to the log
   append_entries_callback_.set(std::bind(
@@ -103,7 +106,7 @@ void Context::initialize_node() {
               cluster_name_, node_id_, NodeUtil::kAppendEntriesServiceName
           ),
           append_entries_callback_,
-          options
+          service_options
       );
 
   node_services_->add_service(
@@ -126,11 +129,24 @@ void Context::initialize_node() {
               cluster_name_, node_id_, NodeUtil::kRequestVoteServiceName
           ),
           request_vote_callback_,
-          options
+          service_options
       );
 
   node_services_->add_service(
       std::dynamic_pointer_cast<rclcpp::ServiceBase>(request_vote_service_), nullptr
+  );
+
+  // Client for requesting membership changes
+  request_membership_client_ =
+      rclcpp::Client<foros_msgs::srv::RequestMembership>::make_shared(
+          node_base_.get(),
+          node_graph_,
+          NodeUtil::request_membership_service_name(cluster_name_),
+          client_options
+      );
+
+  node_services_->add_client(
+      std::dynamic_pointer_cast<rclcpp::ClientBase>(request_membership_client_), nullptr
   );
 }
 
@@ -178,13 +194,41 @@ bool Context::update_term(uint64_t term, bool self) {
   return true;
 }
 
+void Context::on_membership_change_requested(
+    const std::shared_ptr<rmw_request_id_t>,
+    const std::shared_ptr<foros_msgs::srv::RequestMembership::Request> request,
+    std::shared_ptr<foros_msgs::srv::RequestMembership::Response> response
+) {
+  // ID already exists during an add or doesn't exist during a remove
+  if ((request->add_request && config_.is_member(request->node_id)) ||
+      (!request->add_request && !config_.is_member(request->node_id))) {
+    response->success = false;
+    return;
+  }
+
+  // Build the new config if the request is valid
+  std::vector<uint32_t> new_member_ids = config_.member_ids;
+  if (request->add_request) {
+    new_member_ids.push_back(request->node_id);
+  } else {
+    new_member_ids.erase(
+        std::remove(new_member_ids.begin(), new_member_ids.end(), request->node_id),
+        new_member_ids.end()
+    );
+  }
+
+  commit_config(ClusterConfig{new_member_ids});
+  response->success = true;
+}
+
 void Context::on_append_entries_requested(
     const std::shared_ptr<rmw_request_id_t>,
     const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request,
     std::shared_ptr<foros_msgs::srv::AppendEntries::Response> response
 ) {
-  // Return early if the requested leader isn't in the cluster
-  if (is_valid_node(request->leader_id) == false) {
+  // Return early if the requested leader isn't in the cluster AND not in learner mode
+  if (!is_valid_node(request->leader_id) &&
+      state_machine_interface_->get_current_state() != StateType::kLearner) {
     response->success = false;
     return;
   }
@@ -352,6 +396,34 @@ void Context::reset_broadcast_timer() {
   start_broadcast_timer();
 }
 
+void Context::start_membership_service() {
+  if (request_membership_service_ != nullptr) return;
+
+  // Add the service to this node
+  request_membership_callback_.set(std::bind(
+      &Context::on_membership_change_requested,
+      this,
+      std::placeholders::_1,
+      std::placeholders::_2,
+      std::placeholders::_3
+  ));
+
+  rcl_service_options_t options = rcl_service_get_default_options();
+  request_membership_service_ =
+      std::make_shared<rclcpp::Service<foros_msgs::srv::RequestMembership>>(
+          node_base_->get_shared_rcl_node_handle(),
+          NodeUtil::request_membership_service_name(cluster_name_),
+          request_membership_callback_,
+          options
+      );
+  node_services_->add_service(
+      std::dynamic_pointer_cast<rclcpp::ServiceBase>(request_membership_service_),
+      nullptr
+  );
+}
+
+void Context::stop_membership_service() { request_membership_service_.reset(); }
+
 void Context::vote_for_me() {
   store_->voted_for(node_id_);
   store_->voted(true);
@@ -389,6 +461,8 @@ void Context::reset_vote() {
 void Context::increase_term() { update_term(store_->current_term() + 1, true); }
 
 std::string Context::get_node_name() { return node_base_->get_name(); }
+
+uint32_t Context::get_node_id() { return node_id_; }
 
 uint64_t Context::get_term() { return store_->current_term(); }
 
@@ -516,6 +590,8 @@ CommandCommitResponseSharedFuture Context::cancel_commit(
 }
 
 void Context::apply_config(const ClusterConfig& new_config) {
+  bool was_member = config_.is_member(node_id_);
+
   // Add new nodes in this config
   int64_t next_index = store_->logs_size();
   for (auto id : new_config.member_ids) {
@@ -544,8 +620,85 @@ void Context::apply_config(const ClusterConfig& new_config) {
   }
 
   config_ = new_config;
+  bool is_member = config_.is_member(node_id_);
 
-  // TODO: No removal detection yet, test adding fist
+  if (!was_member && is_member) {
+    state_machine_interface_->on_promoted_to_member();
+  } else if (was_member && !is_member) {
+    state_machine_interface_->on_removed_from_cluster();
+  }
+}
+
+void Context::send_join_request_async() {
+  // If leader isn't available, retry after a delay
+  if (!request_membership_client_->service_is_ready()) {
+    RCLCPP_INFO(logger_, "Leader not available yet, membership request retrying");
+    join_request_timer_ = rclcpp::GenericTimer<rclcpp::VoidCallbackType>::make_shared(
+        node_clock_->get_clock(),
+        std::chrono::milliseconds(1000),
+        [this]() {
+          join_request_timer_.reset();
+          send_join_request_async();
+        },
+        node_base_->get_context()
+    );
+    node_timers_->add_timer(join_request_timer_, nullptr);
+    return;
+  }
+
+  auto request = std::make_shared<foros_msgs::srv::RequestMembership::Request>();
+  request->node_id = node_id_;
+  request->add_request = true;
+
+  // Send an async request
+  request_membership_client_->async_send_request(
+      request,
+      [this](rclcpp::Client<foros_msgs::srv::RequestMembership>::SharedFuture future) {
+        auto response = future.get();
+        if (!response->success) {
+          RCLCPP_WARN(logger_, "Membership request rejected");
+
+          // Retry after a delay
+          join_request_timer_ =
+              rclcpp::GenericTimer<rclcpp::VoidCallbackType>::make_shared(
+                  node_clock_->get_clock(),
+                  std::chrono::milliseconds(1000),
+                  [this]() {
+                    join_request_timer_.reset();
+                    send_join_request_async();
+                  },
+                  node_base_->get_context()
+              );
+          node_timers_->add_timer(join_request_timer_, nullptr);
+        } else {
+          RCLCPP_INFO(logger_, "Successfully joined the cluster");
+        }
+      }
+  );
+}
+
+bool Context::request_membership_change(uint32_t node_id, bool add_request) {
+  if (!request_membership_client_->wait_for_service(std::chrono::seconds(1))) {
+    RCLCPP_WARN(logger_, "Membership service not available, is there a leader?");
+    return false;
+  }
+
+  // Create the service request
+  auto request = std::make_shared<foros_msgs::srv::RequestMembership::Request>();
+  request->node_id = node_id;
+  request->add_request = add_request;
+
+  auto future = request_membership_client_->async_send_request(request);
+  if (future.wait_for(std::chrono::seconds(1)) != std::future_status::ready) {
+    RCLCPP_WARN(logger_, "Membership service request timed out");
+    return false;
+  }
+
+  auto response = future.get();
+  if (!response->success) {
+    RCLCPP_WARN(logger_, "Membership service request rejected");
+  }
+  return response->success;
 }
 
 CommandCommitResponseSharedFuture Context::commit_command(
@@ -583,12 +736,6 @@ void Context::commit_config(const ClusterConfig& new_config) {
   auto log =
       LogEntry::make_shared(store_->logs_size(), store_->current_term(), new_config);
 
-  // Bypass pending for size of 1
-  if (config_.quorum_size() <= 1) {
-    finalize_commit(log, true);
-    return;
-  }
-
   // Add new nodes to other_nodes_ so they can receive the config change
   int64_t next_index = store_->logs_size();
   for (auto id : new_config.member_ids) {
@@ -602,6 +749,12 @@ void Context::commit_config(const ClusterConfig& new_config) {
         next_index,
         std::bind(&Context::on_log_get_request, this, std::placeholders::_1)
     );
+  }
+
+  // Bypass pending for size of 1
+  if (config_.quorum_size() <= 1) {
+    finalize_commit(log, true);
+    return;
   }
 
   // Set a null commit callback, not needed for config changes
@@ -808,6 +961,9 @@ void Context::inspector_message_requested(foros_msgs::msg::Inspector::SharedPtr 
       break;
     case StateType::kLeader:
       msg->state = foros_msgs::msg::Inspector::LEADER;
+      break;
+    case StateType::kLearner:
+      msg->state = foros_msgs::msg::Inspector::LEARNER;
       break;
     default:
       msg->state = foros_msgs::msg::Inspector::UNKNOWN;

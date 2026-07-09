@@ -58,6 +58,8 @@ class TestRaft : public ::testing::Test {
 class MockStateMachineInterface
     : public akit::failover::foros::raft::StateMachineInterface {
  public:
+  MOCK_METHOD(void, on_promoted_to_member, (), (override));
+  MOCK_METHOD(void, on_removed_from_cluster, (), (override));
   MOCK_METHOD(void, on_election_timedout, (), (override));
   MOCK_METHOD(void, on_new_term_received, (), (override));
   MOCK_METHOD(void, on_elected, (), (override));

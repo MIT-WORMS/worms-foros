@@ -1,0 +1,4 @@
+uint32 node_id      # ID of the node requesting membership
+bool add_request    # true if requesting to be added, false if requesting to be removed
+---
+bool success        # true if the membership request was successful
