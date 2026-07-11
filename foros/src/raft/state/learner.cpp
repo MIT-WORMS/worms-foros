@@ -5,8 +5,6 @@ namespace failover {
 namespace foros {
 namespace raft {
 
-// void Learner::on_started() { context_->send_join_request_async(); }
-
 void Learner::on_started() { context_->send_join_request_async(); }
 
 void Learner::on_timedout() {}

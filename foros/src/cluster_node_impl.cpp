@@ -119,7 +119,13 @@ void ClusterNodeImpl::handle(const raft::StateType& state) {
           raft_context_->get_term(),
           static_cast<int>(state)
       );
-      break;
+      // Early return to avoid state callback
+      return;
+  }
+
+  // Inform callback of new state
+  if (raft_state_callback_) {
+    raft_state_callback_(state);
   }
 }
 
@@ -149,6 +155,12 @@ void ClusterNodeImpl::register_on_standby(std::function<void()> callback) {
   set_standby_callback(callback);
 }
 
+void ClusterNodeImpl::register_on_raft_state(
+    std::function<void(const raft::StateType)> callback
+) {
+  set_raft_state_callback(callback);
+}
+
 void ClusterNodeImpl::set_activated_callback(std::function<void()> callback) {
   activated_callback_ = callback;
 }
@@ -161,12 +173,22 @@ void ClusterNodeImpl::set_standby_callback(std::function<void()> callback) {
   standby_callback_ = callback;
 }
 
+void ClusterNodeImpl::set_raft_state_callback(
+    std::function<void(const raft::StateType)> callback
+) {
+  raft_state_callback_ = callback;
+}
+
 uint64_t ClusterNodeImpl::get_commands_size() {
   return raft_context_->get_commands_size();
 }
 
 Command::SharedPtr ClusterNodeImpl::get_command(uint64_t id) {
   return raft_context_->get_command(id);
+}
+
+raft::StateType ClusterNodeImpl::get_raft_state() const {
+  return raft_fsm_->get_current_state_type();
 }
 
 void ClusterNodeImpl::register_on_committed(

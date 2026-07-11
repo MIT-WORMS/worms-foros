@@ -198,19 +198,19 @@ void Inspector::add_node_item(std::shared_ptr<NodeInfo> node) {
 
 void Inspector::add_state_name(const uint8_t state) {
   switch (state) {
-    case foros_msgs::msg::Inspector::STANDBY:
+    case foros_msgs::msg::RaftState::STANDBY:
       add_string("Standby", medium_column_);
       break;
-    case foros_msgs::msg::Inspector::FOLLOWER:
+    case foros_msgs::msg::RaftState::FOLLOWER:
       add_string("Follower", medium_column_);
       break;
-    case foros_msgs::msg::Inspector::CANDIDATE:
+    case foros_msgs::msg::RaftState::CANDIDATE:
       add_string("Candidate", medium_column_, Colors::kYellowOnBlack);
       break;
-    case foros_msgs::msg::Inspector::LEADER:
+    case foros_msgs::msg::RaftState::LEADER:
       add_bold_string("Leader", medium_column_, Colors::kGreenOnBlack);
       break;
-    case foros_msgs::msg::Inspector::LEARNER:
+    case foros_msgs::msg::RaftState::LEARNER:
       add_string("Learner", medium_column_, Colors::kCyanOnBlack);
       break;
     default:
@@ -368,7 +368,7 @@ void Inspector::inspector_message_received(
 
   node->size_ = msg->cluster_size;
   node->term_ = msg->term;
-  node->state_ = msg->state;
+  node->state_ = msg->raft.state;
   node->data_size_ = msg->data_size;
   node->voted_for_ = msg->voted_for;
   node->last_updated_ = msg->stamp;
@@ -379,7 +379,7 @@ void Inspector::inspector_message_received(
 
   if (cluster->term_ <= node->term_) {
     cluster->term_ = node->term_;
-    if (node->state_ == foros_msgs::msg::Inspector::LEADER) {
+    if (node->state_ == foros_msgs::msg::RaftState::LEADER) {
       cluster->leader_ = node->id_;
       cluster->leader_exist_ = true;
     }

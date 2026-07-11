@@ -80,7 +80,7 @@ void Inspector::initialize_publisher(
                   rclcpp::Publisher<foros_msgs::msg::Inspector>>(
                   rclcpp::PublisherOptionsWithAllocator<std::allocator<void>>()
               ),
-              rclcpp::QoS(0)
+              rclcpp::QoS(1)
           )
       );
 

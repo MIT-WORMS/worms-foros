@@ -16,6 +16,8 @@
 
 #include "raft/context.hpp"
 
+#include <rmw/qos_profiles.h>
+
 #include <foros_msgs/srv/request_vote.hpp>
 #include <functional>
 #include <memory>
@@ -66,7 +68,8 @@ Context::Context(
       broadcast_received_(false),
       state_machine_interface_(nullptr),
       logger_(logger.get_child("raft")) {
-  auto db_file = temp_directory + "/foros_" + node_base_->get_name();
+  auto db_file =
+      temp_directory + "/foros_" + cluster_name + "_" + std::to_string(node_id);
   store_ = std::make_unique<ContextStore>(db_file, logger_);
   inspector_ = std::make_unique<Inspector>(
       node_base,
@@ -89,6 +92,7 @@ void Context::initialize(
 
 void Context::initialize_node() {
   rcl_service_options_t service_options = rcl_service_get_default_options();
+  service_options.qos = rmw_qos_profile_services_default;
   rcl_client_options_t client_options = rcl_client_get_default_options();
   client_options.qos = rmw_qos_profile_services_default;
 
@@ -986,22 +990,22 @@ void Context::inspector_message_requested(foros_msgs::msg::Inspector::SharedPtr 
   msg->voted_for = store_->voted_for();
   switch (state_machine_interface_->get_current_state()) {
     case StateType::kStandby:
-      msg->state = foros_msgs::msg::Inspector::STANDBY;
+      msg->raft.state = foros_msgs::msg::RaftState::STANDBY;
       break;
     case StateType::kFollower:
-      msg->state = foros_msgs::msg::Inspector::FOLLOWER;
+      msg->raft.state = foros_msgs::msg::RaftState::FOLLOWER;
       break;
     case StateType::kCandidate:
-      msg->state = foros_msgs::msg::Inspector::CANDIDATE;
+      msg->raft.state = foros_msgs::msg::RaftState::CANDIDATE;
       break;
     case StateType::kLeader:
-      msg->state = foros_msgs::msg::Inspector::LEADER;
+      msg->raft.state = foros_msgs::msg::RaftState::LEADER;
       break;
     case StateType::kLearner:
-      msg->state = foros_msgs::msg::Inspector::LEARNER;
+      msg->raft.state = foros_msgs::msg::RaftState::LEARNER;
       break;
     default:
-      msg->state = foros_msgs::msg::Inspector::UNKNOWN;
+      msg->raft.state = foros_msgs::msg::RaftState::UNKNOWN;
       break;
   }
 }

@@ -13,6 +13,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/AppendEntries.srv"
   "srv/RequestVote.srv"
   "srv/RequestMembership.srv"
+  "srv/InitRaft.srv"
+  "msg/RaftState.msg"
   "msg/Inspector.msg"
   DEPENDENCIES builtin_interfaces
   ADD_LINTER_TESTS

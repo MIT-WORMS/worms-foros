@@ -17,6 +17,7 @@ find_package(leveldb REQUIRED)
 include_directories(src)
 
 set(${PROJECT_NAME}_SRCS
+  src/raft_interface_node.cpp
   src/cluster_node.cpp
   src/cluster_node_options.cpp
   src/cluster_node_impl.cpp
@@ -70,6 +71,23 @@ install(
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+)
+
+# ros node executable
+add_executable(raft_interface_node
+  src/raft_interface_main.cpp
+)
+target_link_libraries(raft_interface_node
+  ${PROJECT_NAME}
+)
+ament_target_dependencies(raft_interface_node
+  rclcpp
+  foros_msgs
+)
+
+install(
+  TARGETS raft_interface_node
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
