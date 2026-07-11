@@ -1,0 +1,4 @@
+uint32[] member_ids     # Node IDs in the cluster to initialize. If empty, this node
+                        # will be started in Learner mode and join the cluster.
+---
+bool success            # True if the raft process was initialized

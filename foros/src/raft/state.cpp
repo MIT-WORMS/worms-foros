@@ -33,7 +33,8 @@ State::State(
     StateType type,
     std::map<Event, StateType> transition_map,
     std::shared_ptr<Context> context,
-    rclcpp::Logger& logger)
+    rclcpp::Logger& logger
+)
     : context_(context),
       type_(type),
       transition_map_(transition_map),
@@ -46,6 +47,7 @@ State::State(
       {Event::kElected, std::bind(&State::on_elected, this)},
       {Event::kTerminated, std::bind(&State::on_terminated, this)},
       {Event::kBroadcastTimedout, std::bind(&State::on_broadcast_timedout, this)},
+      {Event::kPromotedToMember, std::bind(&State::on_promoted_to_member, this)},
   };
 }
 
@@ -63,7 +65,8 @@ StateType State::handle(const Event& event) {
         logger_,
         "[%d]: invalid event: %d",
         static_cast<int>(type_),
-        static_cast<int>(event));
+        static_cast<int>(event)
+    );
     return type_;
   }
 

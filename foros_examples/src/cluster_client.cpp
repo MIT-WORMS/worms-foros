@@ -43,7 +43,8 @@ int main(int argc, char** argv) {
             auto ret = future.get();
             auto response = ret.second;
             RCLCPP_INFO(logger, "response received from %s", response->message.c_str());
-          });
+          }
+      );
     });
 
     rclcpp::spin(node->get_node_base_interface());

@@ -31,7 +31,8 @@ Inspector::Inspector(
     rclcpp::node_interfaces::NodeTimersInterface::SharedPtr node_timers,
     rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
     std::function<void(foros_msgs::msg::Inspector::SharedPtr msg)>
-        message_request_callback)
+        message_request_callback
+)
     : message_request_callback_(message_request_callback) {
   if (message_request_callback_ == nullptr || !is_enabled()) {
     return;
@@ -45,13 +46,15 @@ Inspector::Inspector(
   timer_ = rclcpp::GenericTimer<rclcpp::VoidCallbackType>::make_shared(
       node_clock->get_clock(),
       std::chrono::duration_cast<std::chrono::nanoseconds>(
-          std::chrono::duration<double>(period)),
+          std::chrono::duration<double>(period)
+      ),
       [this]() {
         auto msg = std::make_shared<foros_msgs::msg::Inspector>();
         message_request_callback_(msg);
         inspector_publisher_->publish(*msg);
       },
-      node_base->get_context());
+      node_base->get_context()
+  );
   node_timers->add_timer(timer_, nullptr);
 
   initialize_publisher(node_topics);
@@ -65,7 +68,8 @@ Inspector::~Inspector() {
 }
 
 void Inspector::initialize_publisher(
-    rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics) {
+    rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics
+) {
   inspector_publisher_ =
       std::dynamic_pointer_cast<rclcpp::Publisher<foros_msgs::msg::Inspector>>(
           node_topics->create_publisher(
@@ -74,8 +78,11 @@ void Inspector::initialize_publisher(
                   foros_msgs::msg::Inspector,
                   std::allocator<void>,
                   rclcpp::Publisher<foros_msgs::msg::Inspector>>(
-                  rclcpp::PublisherOptionsWithAllocator<std::allocator<void>>()),
-              rclcpp::QoS(0)));
+                  rclcpp::PublisherOptionsWithAllocator<std::allocator<void>>()
+              ),
+              rclcpp::QoS(1)
+          )
+      );
 
   node_topics->add_publisher(inspector_publisher_, nullptr);
 }

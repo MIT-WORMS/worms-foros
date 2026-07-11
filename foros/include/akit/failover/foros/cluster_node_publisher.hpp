@@ -58,7 +58,8 @@ class ClusterNodePublisher : public rclcpp::Publisher<MessageT, Alloc> {
       rclcpp::node_interfaces::NodeBaseInterface* node_base,
       const std::string& topic,
       const rclcpp::QoS& qos,
-      const rclcpp::PublisherOptionsWithAllocator<Alloc>& options)
+      const rclcpp::PublisherOptionsWithAllocator<Alloc>& options
+  )
       : rclcpp::Publisher<MessageT, Alloc>(node_base, topic, qos, options),
         node_lifecycle_interface_(nullptr),
         logger_(rclcpp::get_logger("ClusterNodePublisher")) {}

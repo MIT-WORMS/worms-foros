@@ -40,7 +40,8 @@ class State {
       StateType type,
       std::map<Event, StateType> transition_map,
       std::shared_ptr<Context> context,
-      rclcpp::Logger& logger);
+      rclcpp::Logger& logger
+  );
   virtual ~State() {}
 
   StateType get_type();
@@ -50,6 +51,7 @@ class State {
 
   virtual void on_started() = 0;
   virtual void on_timedout() = 0;
+  virtual void on_promoted_to_member() = 0;
   virtual void on_broadcast_timedout() = 0;
   virtual void on_leader_discovered() = 0;
   virtual void on_new_term_received() = 0;

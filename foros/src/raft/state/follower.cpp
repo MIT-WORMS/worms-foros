@@ -34,6 +34,8 @@ void Follower::on_started() {}
 
 void Follower::on_timedout() {}
 
+void Follower::on_promoted_to_member() {}
+
 void Follower::on_broadcast_timedout() {}
 
 void Follower::on_leader_discovered() {}

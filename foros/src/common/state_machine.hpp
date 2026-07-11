@@ -33,7 +33,8 @@ template <typename State, typename StateType, typename Event>
 class StateMachine : public Observer<Event> {
  public:
   StateMachine(
-      StateType current_state, std::map<StateType, std::shared_ptr<State>> states)
+      StateType current_state, std::map<StateType, std::shared_ptr<State>> states
+  )
       : states_(states), current_state_(current_state) {
     // create event source and attach it to states
     event_notifier_ = std::make_shared<Observable<Event>>();

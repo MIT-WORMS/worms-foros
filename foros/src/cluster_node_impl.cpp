@@ -39,7 +39,8 @@ ClusterNodeImpl::ClusterNodeImpl(
     rclcpp::node_interfaces::NodeTopicsInterface::SharedPtr node_topics,
     rclcpp::node_interfaces::NodeTimersInterface::SharedPtr node_timers,
     rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
-    const ClusterNodeOptions& options)
+    const ClusterNodeOptions& options
+)
     : logger_(node_logging->get_logger().get_child("cluster_node")),
       raft_context_(std::make_shared<raft::Context>(
           cluster_name,
@@ -52,10 +53,13 @@ ClusterNodeImpl::ClusterNodeImpl(
           node_clock,
           options.election_timeout_min(),
           options.election_timeout_max(),
+          options.eviction_timeout(),
           options.temp_directory(),
-          logger_)),
-      raft_fsm_(std::make_unique<raft::StateMachine>(
-          cluster_node_ids, raft_context_, logger_)),
+          logger_
+      )),
+      raft_fsm_(
+          std::make_unique<raft::StateMachine>(cluster_node_ids, raft_context_, logger_)
+      ),
       lifecycle_fsm_(std::make_unique<lifecycle::StateMachine>(logger_)) {
   lifecycle_fsm_->subscribe(this);
   raft_fsm_->subscribe(this);
@@ -105,13 +109,23 @@ void ClusterNodeImpl::handle(const raft::StateType& state) {
     case raft::StateType::kLeader:
       lifecycle_fsm_->handle(lifecycle::Event::kActivate);
       break;
+    case raft::StateType::kLearner:
+      lifecycle_fsm_->handle(lifecycle::Event::kStandby);
+      break;
     default:
       RCLCPP_ERROR(
           logger_,
           "Invalid raft state (%lu) : %d",
           raft_context_->get_term(),
-          static_cast<int>(state));
-      break;
+          static_cast<int>(state)
+      );
+      // Early return to avoid state callback
+      return;
+  }
+
+  // Inform callback of new state
+  if (raft_state_callback_) {
+    raft_state_callback_(state);
   }
 }
 
@@ -119,8 +133,13 @@ bool ClusterNodeImpl::is_activated() {
   return lifecycle_fsm_->get_current_state_type() == lifecycle::StateType::kActive;
 }
 
+bool ClusterNodeImpl::request_membership_change(uint32_t node_id, bool add_request) {
+  return raft_context_->request_membership_change(node_id, add_request);
+}
+
 CommandCommitResponseSharedFuture ClusterNodeImpl::commit_command(
-    Command::SharedPtr command, CommandCommitResponseCallback& callback) {
+    Command::SharedPtr command, CommandCommitResponseCallback& callback
+) {
   return raft_context_->commit_command(command, callback);
 }
 
@@ -136,6 +155,12 @@ void ClusterNodeImpl::register_on_standby(std::function<void()> callback) {
   set_standby_callback(callback);
 }
 
+void ClusterNodeImpl::register_on_raft_state(
+    std::function<void(const raft::StateType)> callback
+) {
+  set_raft_state_callback(callback);
+}
+
 void ClusterNodeImpl::set_activated_callback(std::function<void()> callback) {
   activated_callback_ = callback;
 }
@@ -148,6 +173,12 @@ void ClusterNodeImpl::set_standby_callback(std::function<void()> callback) {
   standby_callback_ = callback;
 }
 
+void ClusterNodeImpl::set_raft_state_callback(
+    std::function<void(const raft::StateType)> callback
+) {
+  raft_state_callback_ = callback;
+}
+
 uint64_t ClusterNodeImpl::get_commands_size() {
   return raft_context_->get_commands_size();
 }
@@ -156,13 +187,18 @@ Command::SharedPtr ClusterNodeImpl::get_command(uint64_t id) {
   return raft_context_->get_command(id);
 }
 
+raft::StateType ClusterNodeImpl::get_raft_state() const {
+  return raft_fsm_->get_current_state_type();
+}
+
 void ClusterNodeImpl::register_on_committed(
-    std::function<void(const uint64_t, Command::SharedPtr)> callback) {
+    std::function<void(const uint64_t, Command::SharedPtr)> callback
+) {
   raft_context_->register_on_committed(callback);
 }
 
-void ClusterNodeImpl::register_on_reverted(
-    std::function<void(const uint64_t)> callback) {
+void ClusterNodeImpl::register_on_reverted(std::function<void(const uint64_t)> callback
+) {
   raft_context_->register_on_reverted(callback);
 }
 

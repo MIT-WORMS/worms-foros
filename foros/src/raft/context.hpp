@@ -18,6 +18,7 @@
 #define AKIT_FAILOVER_FOROS_RAFT_CONTEXT_HPP_
 
 #include <foros_msgs/srv/append_entries.hpp>
+#include <foros_msgs/srv/request_membership.hpp>
 #include <foros_msgs/srv/request_vote.hpp>
 #include <map>
 #include <memory>
@@ -36,7 +37,7 @@
 #include <vector>
 
 #include "akit/failover/foros/command.hpp"
-#include "raft/commit_info.hpp"
+#include "raft/cluster_config.hpp"
 #include "raft/context_store.hpp"
 #include "raft/inspector.hpp"
 #include "raft/other_node.hpp"
@@ -61,32 +62,44 @@ class Context {
       rclcpp::node_interfaces::NodeClockInterface::SharedPtr node_clock,
       const unsigned int election_timeout_min,
       const unsigned int election_timeout_max,
+      const unsigned int eviction_timeout,
       const std::string& temp_directory,
-      rclcpp::Logger& logger);
+      rclcpp::Logger& logger
+  );
 
   void initialize(
       const std::vector<uint32_t>& cluster_node_ids,
-      StateMachineInterface* state_machine_interface);
+      StateMachineInterface* state_machine_interface
+  );
   void start_election_timer();
   void stop_election_timer();
   void reset_election_timer();
   void start_broadcast_timer();
   void stop_broadcast_timer();
   void reset_broadcast_timer();
+  void reset_eviction_timers();
+  void start_membership_service();
+  void stop_membership_service();
   std::string get_node_name();
+  uint32_t get_node_id();
   void vote_for_me();
   void reset_vote();
   void increase_term();
   uint64_t get_term();
   void broadcast();
   void request_vote();
+  void send_join_request_async();
+  bool request_membership_change(uint32_t node_id, bool add_request);
   CommandCommitResponseSharedFuture commit_command(
-      Command::SharedPtr command, CommandCommitResponseCallback callback);
+      Command::SharedPtr command, CommandCommitResponseCallback callback
+  );
+  void commit_config(const ClusterConfig& new_config);
   void cancel_pending_commit();
   uint64_t get_commands_size();
   Command::SharedPtr get_command(uint64_t id);
   void register_on_committed(
-      std::function<void(const uint64_t, Command::SharedPtr)> callback);
+      std::function<void(const uint64_t, Command::SharedPtr)> callback
+  );
   void register_on_reverted(std::function<void(const uint64_t)> callback);
 
  private:
@@ -106,48 +119,64 @@ class Context {
       const uint64_t term,
       const uint32_t id,
       const uint64_t last_command_index,
-      const uint64_t last_command_term);
+      const uint64_t last_command_term
+  );
   void on_request_vote_requested(
       const std::shared_ptr<rmw_request_id_t> header,
       const std::shared_ptr<foros_msgs::srv::RequestVote::Request> request,
-      std::shared_ptr<foros_msgs::srv::RequestVote::Response> response);
+      std::shared_ptr<foros_msgs::srv::RequestVote::Response> response
+  );
   void on_request_vote_response(const uint64_t term, const bool vote_granted);
   void check_elected();
   void set_voted_for(uint32_t id);
 
   // Data replication methods
+  void on_membership_change_requested(
+      const std::shared_ptr<rmw_request_id_t> header,
+      const std::shared_ptr<foros_msgs::srv::RequestMembership::Request> request,
+      std::shared_ptr<foros_msgs::srv::RequestMembership::Response> response
+  );
   void on_append_entries_requested(
       const std::shared_ptr<rmw_request_id_t> header,
       const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request,
-      std::shared_ptr<foros_msgs::srv::AppendEntries::Response> response);
+      std::shared_ptr<foros_msgs::srv::AppendEntries::Response> response
+  );
   uint32_t request_remote_commit(const Command::SharedPtr command);
   bool request_local_commit(
-      const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request);
+      const std::shared_ptr<foros_msgs::srv::AppendEntries::Request> request
+  );
   void request_local_rollback(const uint64_t commit_index);
   void on_broadcast_response(
       const uint32_t id,
       const uint64_t commit_index,
       const uint64_t term,
-      const bool success);
-  CommandCommitResponseSharedFuture complete_commit(
+      const bool success
+  );
+  void finalize_commit(LogEntry::SharedPtr log, bool result);
+  CommandCommitResponseSharedFuture complete_command_commit(
       CommandCommitResponseSharedPromise promise,
       CommandCommitResponseSharedFuture future,
       LogEntry::SharedPtr log,
       bool result,
-      CommandCommitResponseCallback callback);
+      CommandCommitResponseCallback callback
+  );
   CommandCommitResponseSharedFuture cancel_commit(
       CommandCommitResponseSharedPromise promise,
       CommandCommitResponseSharedFuture future,
       uint64_t id,
-      CommandCommitResponseCallback callback);
+      CommandCommitResponseCallback callback
+  );
+  void apply_config(const ClusterConfig& new_config);
   std::shared_ptr<PendingCommit> get_pending_commit();
   bool set_pending_commit(std::shared_ptr<PendingCommit> commit);
   void handle_pending_commit_response(
       const uint32_t id,
       const uint64_t commit_index,
       const uint64_t term,
-      const bool success);
+      const bool success
+  );
   const std::shared_ptr<LogEntry> on_log_get_request(uint64_t id);
+  void evict_nodes();
   void inspector_message_requested(foros_msgs::msg::Inspector::SharedPtr msg);
 
   std::shared_ptr<PendingCommit> clear_pending_commit();
@@ -168,18 +197,27 @@ class Context {
   rclcpp::AnyServiceCallback<foros_msgs::srv::AppendEntries> append_entries_callback_;
   rclcpp::Service<foros_msgs::srv::RequestVote>::SharedPtr request_vote_service_;
   rclcpp::AnyServiceCallback<foros_msgs::srv::RequestVote> request_vote_callback_;
+  rclcpp::Service<foros_msgs::srv::RequestMembership>::SharedPtr
+      request_membership_service_;
+  rclcpp::AnyServiceCallback<foros_msgs::srv::RequestMembership>
+      request_membership_callback_;
+
+  rclcpp::Client<foros_msgs::srv::RequestMembership>::SharedPtr
+      request_membership_client_;
 
   std::map<uint32_t, std::shared_ptr<OtherNode>> other_nodes_;
 
   std::unique_ptr<ContextStore> store_;  // raft data store
 
-  uint32_t majority_;                  // number of majority of the full cluster
-  uint32_t cluster_size_;              // number of nodes in the cluster
-  unsigned int election_timeout_min_;  // minimum election timeout in msecs
-  unsigned int election_timeout_max_;  // maximum election timeout in msecs
-  std::random_device random_device_;   // random seed for election timeout
-  std::mt19937 random_generator_;      // random generator for election timeout
+  ClusterConfig config_;                        // current cluster membership
+  unsigned int election_timeout_min_;           // minimum election timeout in msecs
+  unsigned int election_timeout_max_;           // maximum election timeout in msecs
+  std::chrono::milliseconds eviction_timeout_;  // eviction timeout in msecs
+  std::random_device random_device_;            // random seed for election timeout
+  std::mt19937 random_generator_;               // random generator for election timeout
   rclcpp::TimerBase::SharedPtr election_timer_;  // election timeout timer
+
+  rclcpp::TimerBase::SharedPtr join_request_timer_;  // join request timer
 
   unsigned int broadcast_timeout_;                // broadcast timeout
   rclcpp::TimerBase::SharedPtr broadcast_timer_;  // broadcast timer

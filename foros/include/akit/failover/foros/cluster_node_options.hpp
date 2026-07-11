@@ -95,6 +95,19 @@ class ClusterNodeOptions : public rclcpp::NodeOptions {
   CLUSTER_NODE_PUBLIC
   ClusterNodeOptions& election_timeout_max(unsigned int max);
 
+  /// Return the eviction timeout.
+  /**
+   * \return The eviction timeout.
+   */
+  CLUSTER_NODE_PUBLIC unsigned int eviction_timeout() const;
+
+  /// Set the eviction timeout.
+  /**
+   * \param timeout_ms the eviction timeout in milliseconds.
+   * \return The reference of this instance.
+   */
+  CLUSTER_NODE_PUBLIC ClusterNodeOptions& eviction_timeout(unsigned int timeout_ms);
+
   /// Return the temp directory. the files in the temp directory must be cleared
   /// every boot. ex) /tmp in linux.
   CLUSTER_NODE_PUBLIC
@@ -111,6 +124,7 @@ class ClusterNodeOptions : public rclcpp::NodeOptions {
  private:
   unsigned int election_timeout_min_;
   unsigned int election_timeout_max_;
+  unsigned int eviction_timeout_;
   std::string temp_directory_;
 };
 

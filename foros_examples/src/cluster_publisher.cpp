@@ -53,7 +53,8 @@ int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
 
     auto node = akit::failover::foros::ClusterNode::make_shared(
-        kClusterName, id, cluster_node_ids);
+        kClusterName, id, cluster_node_ids
+    );
 
     node->register_on_activated([&]() { RCLCPP_INFO(logger, "activated"); });
     node->register_on_deactivated([&]() { RCLCPP_INFO(logger, "deactivated"); });

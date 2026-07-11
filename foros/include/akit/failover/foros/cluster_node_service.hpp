@@ -53,9 +53,11 @@ class ClusterNodeService : public rclcpp::Service<ServiceT> {
       std::shared_ptr<rcl_node_t> node_handle,
       const std::string& service_name,
       rclcpp::AnyServiceCallback<ServiceT> any_callback,
-      rcl_service_options_t& service_options)
+      rcl_service_options_t& service_options
+  )
       : rclcpp::Service<ServiceT>(
-            node_handle, service_name, any_callback, service_options),
+            node_handle, service_name, any_callback, service_options
+        ),
         node_lifecycle_interface_(nullptr),
         logger_(rclcpp::get_logger("ClusterNodeService")) {}
 
@@ -70,8 +72,8 @@ class ClusterNodeService : public rclcpp::Service<ServiceT> {
    * \param[in] request a handle of the request.
    */
   void handle_request(
-      std::shared_ptr<rmw_request_id_t> request_header,
-      std::shared_ptr<void> request) override {
+      std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<void> request
+  ) override {
     if (node_lifecycle_interface_ != nullptr &&
         !node_lifecycle_interface_->is_activated()) {
       // ignore handle request when service is not activated

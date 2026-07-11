@@ -17,17 +17,23 @@
 #ifndef AKIT_FAILOVER_FOROS_RAFT_STATE_TYPE_HPP_
 #define AKIT_FAILOVER_FOROS_RAFT_STATE_TYPE_HPP_
 
+#include <cstdint>
+#include <foros_msgs/msg/raft_state.hpp>
+
+#include "foros_msgs/msg/raft_state.hpp"
+
 namespace akit {
 namespace failover {
 namespace foros {
 namespace raft {
 
-enum class StateType {
-  kStandby,
-  kFollower,
-  kCandidate,
-  kLeader,
-  kStay,
+enum class StateType : uint8_t {
+  kStandby = foros_msgs::msg::RaftState::STANDBY,
+  kLearner = foros_msgs::msg::RaftState::LEARNER,
+  kFollower = foros_msgs::msg::RaftState::FOLLOWER,
+  kCandidate = foros_msgs::msg::RaftState::CANDIDATE,
+  kLeader = foros_msgs::msg::RaftState::LEADER,
+  kStay = UINT8_MAX,
 };
 
 }  // namespace raft

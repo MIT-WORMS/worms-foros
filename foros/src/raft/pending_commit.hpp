@@ -33,7 +33,8 @@ class PendingCommit {
       LogEntry::SharedPtr log,
       CommandCommitResponseSharedPromise promise,
       CommandCommitResponseSharedFuture future,
-      CommandCommitResponseCallback callback)
+      CommandCommitResponseCallback callback
+  )
       : log_(log), promise_(promise), future_(future), callback_(callback) {}
 
   const LogEntry::SharedPtr log_;

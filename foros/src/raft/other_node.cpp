@@ -33,10 +33,12 @@ OtherNode::OtherNode(
     const std::string& cluster_name,
     const uint32_t node_id,
     const uint64_t next_index,
-    std::function<const std::shared_ptr<LogEntry>(uint64_t)> get_log_entry_callback)
+    std::function<const std::shared_ptr<LogEntry>(uint64_t)> get_log_entry_callback
+)
     : node_id_(node_id),
       next_index_(next_index),
       match_index_(0),
+      last_success_time_(std::chrono::steady_clock::now()),
       get_log_entry_callback_(get_log_entry_callback) {
   rcl_client_options_t options = rcl_client_get_default_options();
   options.qos = rmw_qos_profile_services_default;
@@ -45,19 +47,25 @@ OtherNode::OtherNode(
       node_base.get(),
       node_graph,
       NodeUtil::get_service_name(
-          cluster_name, node_id, NodeUtil::kAppendEntriesServiceName),
-      options);
+          cluster_name, node_id, NodeUtil::kAppendEntriesServiceName
+      ),
+      options
+  );
   node_services->add_client(
-      std::dynamic_pointer_cast<rclcpp::ClientBase>(append_entries_), nullptr);
+      std::dynamic_pointer_cast<rclcpp::ClientBase>(append_entries_), nullptr
+  );
 
   request_vote_ = rclcpp::Client<foros_msgs::srv::RequestVote>::make_shared(
       node_base.get(),
       node_graph,
       NodeUtil::get_service_name(
-          cluster_name, node_id, NodeUtil::kRequestVoteServiceName),
-      options);
+          cluster_name, node_id, NodeUtil::kRequestVoteServiceName
+      ),
+      options
+  );
   node_services->add_client(
-      std::dynamic_pointer_cast<rclcpp::ClientBase>(request_vote_), nullptr);
+      std::dynamic_pointer_cast<rclcpp::ClientBase>(request_vote_), nullptr
+  );
 }
 
 bool OtherNode::broadcast(
@@ -65,7 +73,8 @@ bool OtherNode::broadcast(
     const uint32_t node_id,
     const LogEntry::SharedPtr log,
     std::function<void(const uint32_t, const uint64_t, const uint64_t, const bool)>
-        callback) {
+        callback
+) {
   if (append_entries_->service_is_ready() == false) {
     return false;
   }
@@ -85,7 +94,10 @@ bool OtherNode::broadcast(
     if (log != nullptr && log->id_ >= next_index) {
       auto entry = get_log_entry_callback_(next_index);
       if (entry != nullptr) {
-        request->entries = entry->command_->data();
+        request->entry_type = static_cast<uint8_t>(entry->type());
+        request->entries = (entry->type() == LogEntryType::kCommand)
+                               ? entry->command()->data()
+                               : entry->cluster_config().serialize();
         request->leader_commit = entry->id_;
         request->term = entry->term_;
       }
@@ -108,34 +120,44 @@ bool OtherNode::broadcast(
 void OtherNode::send_append_entries(
     const foros_msgs::srv::AppendEntries::Request::SharedPtr request,
     std::function<void(const uint32_t, const uint64_t, const uint64_t, const bool)>
-        callback) {
+        callback
+) {
+  // shared_ptr to this incase node is evicted while waiting for response
+  auto self = shared_from_this();
+
   auto response = append_entries_->async_send_request(
       request,
-      [=](rclcpp::Client<foros_msgs::srv::AppendEntries>::SharedFutureWithRequest
-              future) {
+      [=](rclcpp::Client<foros_msgs::srv::AppendEntries>::SharedFutureWithRequest future
+      ) {
         auto ret = future.get();
         auto request = ret.first;
         auto response = ret.second;
         {
-          std::lock_guard<std::mutex> lock(index_mutex_);
+          std::lock_guard<std::mutex> lock(self->index_mutex_);
+
+          // Reset eviction timer
+          self->last_success_time_ = std::chrono::steady_clock::now();
+
           if (response->success) {
-            this->match_index_ = request->leader_commit;
-            this->next_index_ = this->match_index_ + 1;
+            self->match_index_ = request->leader_commit;
+            self->next_index_ = self->match_index_ + 1;
           } else {
-            if (this->next_index_ > 0) {
-              this->next_index_--;
+            if (self->next_index_ > 0) {
+              self->next_index_--;
             }
           }
         }
         callback(node_id_, request->leader_commit, response->term, response->success);
-      });
+      }
+  );
 }
 
 bool OtherNode::request_vote(
     const uint64_t current_term,
     const uint32_t node_id,
     const LogEntry::SharedPtr log,
-    std::function<void(const uint64_t, const bool)> callback) {
+    std::function<void(const uint64_t, const bool)> callback
+) {
   if (request_vote_->service_is_ready() == false) {
     return false;
   }
@@ -147,12 +169,13 @@ bool OtherNode::request_vote(
   request->loat_data_term = log == nullptr ? 0 : log->term_;
   auto response = request_vote_->async_send_request(
       request,
-      [=](rclcpp::Client<foros_msgs::srv::RequestVote>::SharedFutureWithRequest
-              future) {
+      [=](rclcpp::Client<foros_msgs::srv::RequestVote>::SharedFutureWithRequest future
+      ) {
         auto ret = future.get();
         auto response = ret.second;
         callback(response->term, response->vote_granted);
-      });
+      }
+  );
 
   return true;
 }
@@ -165,6 +188,18 @@ void OtherNode::set_match_index(const uint64_t match_index) {
   std::lock_guard<std::mutex> lock(index_mutex_);
   match_index_ = match_index;
   next_index_ = match_index_ + 1;
+}
+
+bool OtherNode::should_evict(std::chrono::milliseconds threshold) {
+  if (threshold.count() <= 0) return false;
+  std::lock_guard<std::mutex> lock(index_mutex_);
+  auto now = std::chrono::steady_clock::now();
+  return (now - last_success_time_) > threshold;
+}
+
+void OtherNode::reset_evict_time() {
+  std::lock_guard<std::mutex> lock(index_mutex_);
+  last_success_time_ = std::chrono::steady_clock::now();
 }
 
 }  // namespace raft

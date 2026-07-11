@@ -2,8 +2,12 @@ uint64 term              # leader's term
 uint32 leader_id         # so followers can redirect clients
 uint64 prev_log_index    # index of log entry immediately preceeding new ones
 uint64 prev_log_term     # term of prev_log_index
+uint8 entry_type         # type of entry from possible constants
 byte[] entries           # log entries to store (empty for heartbeat)
 uint64 leader_commit     # leader's commitIndex
+
+uint8 COMMAND = 0
+uint8 CONFIG = 1
 ---
 uint64 term              # current term, for leader to update itself
 bool success             # true if follower contained entry matching

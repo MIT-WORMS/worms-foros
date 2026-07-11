@@ -35,9 +35,8 @@ namespace lifecycle {
 class State {
  public:
   State(
-      StateType type,
-      std::map<Event, StateType> transition_map,
-      rclcpp::Logger& logger);
+      StateType type, std::map<Event, StateType> transition_map, rclcpp::Logger& logger
+  );
   virtual ~State() {}
 
   StateType get_type();

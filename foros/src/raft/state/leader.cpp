@@ -27,6 +27,8 @@ void Leader::on_started() {}
 
 void Leader::on_timedout() {}
 
+void Leader::on_promoted_to_member() {}
+
 void Leader::on_broadcast_timedout() { context_->broadcast(); }
 
 void Leader::on_leader_discovered() {}
@@ -37,10 +39,15 @@ void Leader::on_elected() {}
 
 void Leader::on_terminated() {}
 
-void Leader::entry() { context_->start_broadcast_timer(); }
+void Leader::entry() {
+  context_->start_broadcast_timer();
+  context_->start_membership_service();
+  context_->reset_eviction_timers();
+}
 
 void Leader::exit() {
   context_->stop_broadcast_timer();
+  context_->stop_membership_service();
   context_->cancel_pending_commit();
 }
 

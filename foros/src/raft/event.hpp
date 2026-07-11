@@ -25,6 +25,7 @@ namespace raft {
 enum class Event {
   kStarted,
   kTimedout,
+  kPromotedToMember,
   kLeaderDiscovered,
   kNewTermReceived,
   kElected,

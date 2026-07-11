@@ -30,12 +30,19 @@ class NodeUtil {
   static const char* kRequestVoteServiceName;
 
   static std::string get_node_name(
-      const std::string& cluster_name, const uint32_t node_id);
+      const std::string& cluster_name, const uint32_t node_id
+  );
 
   static std::string get_service_name(
       const std::string& cluster_name,
       const uint32_t node_id,
-      const std::string& service_name);
+      const std::string& service_name
+  );
+
+  static std::string request_membership_service_name(const std::string& cluster_name);
+
+ private:
+  static const char* kRequestMembershipServiceName;
 };
 
 }  // namespace foros
