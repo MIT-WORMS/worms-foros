@@ -82,6 +82,7 @@ class Context {
   void stop_membership_service();
   std::string get_node_name();
   uint32_t get_node_id();
+  uint32_t get_leader_id();
   void vote_for_me();
   void reset_vote();
   void increase_term();
@@ -101,6 +102,7 @@ class Context {
       std::function<void(const uint64_t, Command::SharedPtr)> callback
   );
   void register_on_reverted(std::function<void(const uint64_t)> callback);
+  void register_on_leader_discovered(std::function<void(uint32_t)> callback);
 
  private:
   void initialize_node();
@@ -113,6 +115,7 @@ class Context {
 
   void invoke_commit_callback(LogEntry::SharedPtr log);
   void invoke_revert_callback(uint64_t id);
+  void invoke_leader_discovered_callback(uint32_t leader_id);
 
   // Voting methods
   std::tuple<uint64_t, bool> vote(
@@ -183,9 +186,11 @@ class Context {
 
   void set_commit_callback(std::function<void(uint64_t, Command::SharedPtr)> callback);
   void set_revert_callback(std::function<void(uint64_t)> callback);
+  void set_leader_discovered_callback(std::function<void(uint32_t)> callback);
 
   const std::string cluster_name_;
   uint32_t node_id_;
+  uint32_t leader_id_;
 
   rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_;
   rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph_;
@@ -228,6 +233,7 @@ class Context {
   std::shared_ptr<PendingCommit> pending_commit_;
   std::function<void(uint64_t, Command::SharedPtr)> commit_callback_;
   std::function<void(uint64_t)> revert_callback_;
+  std::function<void(uint32_t)> leader_discovered_callback_;
 
   StateMachineInterface* state_machine_interface_;
 

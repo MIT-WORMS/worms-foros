@@ -79,10 +79,12 @@ class ClusterNodeImpl final : Observer<lifecycle::StateType>,
   uint64_t get_commands_size();
   Command::SharedPtr get_command(uint64_t id);
   raft::StateType get_raft_state() const;
+  uint32_t get_leader_id() const;
   void register_on_committed(
       std::function<void(const uint64_t, Command::SharedPtr)> callback
   );
   void register_on_reverted(std::function<void(const uint64_t)> callback);
+  void register_on_leader_discovered(std::function<void(uint32_t)> callback);
 
  private:
   void set_activated_callback(std::function<void()> callback);
