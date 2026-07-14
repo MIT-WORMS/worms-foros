@@ -32,12 +32,15 @@ class RaftInterfaceNode : public rclcpp::Node {
   );
 
   /// Publishes the current cached raft state
-  void publish_state(const raft::StateType state);
+  void publish_state();
 
  private:
   std::string cluster_name_;
   uint32_t node_id_;
   ClusterNodeOptions options_{};
+
+  raft::StateType state_;
+  uint32_t leader_id_;
 
   std::unique_ptr<ClusterNodeImpl> impl_;
 

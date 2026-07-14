@@ -21,6 +21,7 @@
 #include <foros_msgs/srv/request_vote.hpp>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <random>
 #include <rclcpp/logging.hpp>
 #include <string>
@@ -29,6 +30,7 @@
 #include <vector>
 
 #include "common/node_util.hpp"
+#include "foros_msgs/msg/raft_state.hpp"
 #include "raft/cluster_config.hpp"
 #include "raft/log_entry.hpp"
 #include "raft/state_machine_interface.hpp"
@@ -55,6 +57,7 @@ Context::Context(
 )
     : cluster_name_(cluster_name),
       node_id_(node_id),
+      leader_id_(foros_msgs::msg::RaftState::UNKNOWN_LEADER),
       node_base_(node_base),
       node_graph_(node_graph),
       node_services_(node_services),
@@ -247,6 +250,10 @@ void Context::on_append_entries_requested(
     update_term(request->term);
     broadcast_received_ = true;
     state_machine_interface_->on_leader_discovered();
+    if (leader_id_ != request->leader_id) {
+      leader_id_ = request->leader_id;
+      invoke_leader_discovered_callback(leader_id_);
+    }
   }
 
   if (request->entries.size() == 0) {
@@ -470,6 +477,8 @@ std::string Context::get_node_name() { return node_base_->get_name(); }
 
 uint32_t Context::get_node_id() { return node_id_; }
 
+uint32_t Context::get_leader_id() { return leader_id_; }
+
 uint64_t Context::get_term() { return store_->current_term(); }
 
 void Context::broadcast() {
@@ -554,6 +563,8 @@ void Context::check_elected() {
     node.second->update_match_index(id);
   }
 
+  leader_id_ = node_id_;
+  invoke_leader_discovered_callback(leader_id_);
   state_machine_interface_->on_elected();
 }
 
@@ -926,6 +937,15 @@ void Context::set_revert_callback(std::function<void(uint64_t)> callback) {
   revert_callback_ = callback;
 }
 
+void Context::register_on_leader_discovered(std::function<void(uint32_t)> callback) {
+  set_leader_discovered_callback(callback);
+}
+
+void Context::set_leader_discovered_callback(std::function<void(uint32_t)> callback) {
+  std::lock_guard<std::recursive_mutex> lock(callback_mutex_);
+  leader_discovered_callback_ = callback;
+}
+
 void Context::invoke_commit_callback(LogEntry::SharedPtr log) {
   std::lock_guard<std::recursive_mutex> lock(callback_mutex_);
   if (log == nullptr) {
@@ -947,6 +967,13 @@ void Context::invoke_revert_callback(uint64_t id) {
   std::lock_guard<std::recursive_mutex> lock(callback_mutex_);
   if (revert_callback_ != nullptr) {
     revert_callback_(id);
+  }
+}
+
+void Context::invoke_leader_discovered_callback(uint32_t leader_id) {
+  std::lock_guard<std::recursive_mutex> lock(callback_mutex_);
+  if (leader_discovered_callback_ != nullptr) {
+    leader_discovered_callback_(leader_id);
   }
 }
 

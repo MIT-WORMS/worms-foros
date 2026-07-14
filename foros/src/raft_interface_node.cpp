@@ -1,5 +1,6 @@
 #include "akit/failover/foros/raft_interface_node.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <stdexcept>
 
@@ -52,7 +53,9 @@ RaftInterfaceNode::RaftInterfaceNode() : rclcpp::Node("raft_interface") {
   );
 
   // Publish the initial standby state
-  publish_state(raft::StateType::kStandby);
+  state_ = raft::StateType::kStandby;
+  leader_id_ = foros_msgs::msg::RaftState::UNKNOWN_LEADER;
+  publish_state();
 }
 
 void RaftInterfaceNode::on_init(
@@ -83,11 +86,20 @@ void RaftInterfaceNode::on_init(
 
   // Setup the state callback
   impl_->register_on_raft_state([this](const raft::StateType state) {
-    publish_state(state);
+    state_ = state;
+    publish_state();
+  });
+
+  // Setup the leader ID callback
+  impl_->register_on_leader_discovered([this](uint32_t leader_id) {
+    leader_id_ = leader_id;
+    publish_state();
   });
 
   // Publish current state to make sure it is captured (race condition)
-  publish_state(impl_->get_raft_state());
+  state_ = impl_->get_raft_state();
+  leader_id_ = impl_->get_leader_id();
+  publish_state();
 
   response->success = true;
   if (ids.empty()) {
@@ -97,9 +109,10 @@ void RaftInterfaceNode::on_init(
   }
 }
 
-void RaftInterfaceNode::publish_state(const raft::StateType state) {
+void RaftInterfaceNode::publish_state() {
   auto msg = std::make_unique<foros_msgs::msg::RaftState>();
-  msg->state = static_cast<uint8_t>(state);
+  msg->state = static_cast<uint8_t>(state_);
+  msg->leader_id = leader_id_;
   state_pub_->publish(std::move(msg));
 }
 

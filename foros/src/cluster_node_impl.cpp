@@ -191,6 +191,10 @@ raft::StateType ClusterNodeImpl::get_raft_state() const {
   return raft_fsm_->get_current_state_type();
 }
 
+uint32_t ClusterNodeImpl::get_leader_id() const {
+  return raft_context_->get_leader_id();
+}
+
 void ClusterNodeImpl::register_on_committed(
     std::function<void(const uint64_t, Command::SharedPtr)> callback
 ) {
@@ -200,6 +204,12 @@ void ClusterNodeImpl::register_on_committed(
 void ClusterNodeImpl::register_on_reverted(std::function<void(const uint64_t)> callback
 ) {
   raft_context_->register_on_reverted(callback);
+}
+
+void ClusterNodeImpl::register_on_leader_discovered(
+    std::function<void(uint32_t)> callback
+) {
+  raft_context_->register_on_leader_discovered(callback);
 }
 
 }  // namespace foros
